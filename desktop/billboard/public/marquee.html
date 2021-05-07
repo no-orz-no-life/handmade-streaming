@@ -2,7 +2,13 @@
     <head>
         <meta charset="UTF-8"/>
         <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <title>Marquee</title>
         <style>
+
+body {
+    -webkit-user-select: none;
+    user-select: none;
+}
 .m-marquee-content {
     font-size: 32px;
 }
@@ -14,17 +20,39 @@
         <script src="./index.js"></script>
         <div id="marquee0" class="marquee"/>
         <script>
-            lines = ["http://risky-safety.org/~zinnia/"]
+lines = ["initializing... plese wait."]
 
-            $.hMarquee.marquee({
-                el: $("#marquee0"),
-                externalClass: "marquee",
-                list: lines,
-                minShowCount: 1,
-                fadeInOut: true,
-                alwaysScroll: true,
-                speedPeerSec: 50,
-            })
+$.hMarquee.marquee({
+    el: $("#marquee0"),
+    externalClass: "marquee",
+    list: lines,
+    minShowCount: 1,
+    fadeInOut: true,
+    alwaysScroll: true,
+    speedPeerSec: 50,
+})
+
+// why can't be called when including it in src/index.js??
+function intervalTimer(intervalMsec, callback)
+{
+    var now = new Date();
+
+    callback()
+
+    var delay = intervalMsec - new Date().getMilliseconds();
+    setTimeout(() => { intervalTimer(intervalMsec, callback)}, delay);
+}
+
+intervalTimer(1000, () => {
+    let selector = "span.m-marquee-item"
+    window.electron.GetMarqueeMessage().then(newMessage => {
+        let oldMessage = $(selector).text()
+        if(oldMessage != newMessage)
+        {
+            $(selector).text(newMessage)
+        }
+    }).catch(e => console.log(e))
+})
         </script>
     </body>
 </html>
