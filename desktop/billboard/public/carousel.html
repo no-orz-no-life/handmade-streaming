@@ -4,7 +4,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
         <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'unsafe-eval';" />
         <link rel="stylesheet" type="text/css" href="../node_modules/slick-carousel/slick/slick.css"/>
-<!--        <link rel="stylesheet" type="text/css" href="../node_modules/slick-carousel/slick/slick-theme.css"/> -->
+        <link rel="stylesheet" type="text/css" href="../node_modules/slick-carousel/slick/slick-theme.css"/>
         <title>Carousel</title>
     </head>
     <body>
@@ -12,6 +12,7 @@
         <script src="../node_modules/slick-carousel/slick/slick.min.js"></script>
         <script src="./index.js"></script>
         <script>
+const debug = true
 function intervalTimer(intervalMsec, callback)
 {
     var now = new Date();
@@ -23,26 +24,31 @@ function intervalTimer(intervalMsec, callback)
 }
 
 intervalTimer(1000, () => {
-
+    // refresh when updated
 })
 let selector = "div#billboard-content"
 $(document).ready(() => {
+    var count = 0
     window.electron.GetCarouselPages(true).then(it => {
         let parent = $(selector) 
         parent.empty()
         it.forEach(html => parent.append(html))
-    })
-    $(".billboard-content").slick({
-        dots: false,
-        infinite: true,
-        speed: 500,
-        cssEase: "linear",
-        autoplay: true,
+    }).then(() => {
+        $(selector).slick({
+            dots: false,
+            arrows: false,
+            infinite: true,
+            speed: 500,
+            cssEase: "linear",
+            fade: true,
+            autoplay: true,
+            autoplaySpeed: debug ? (3 * 1000) : (15 * 1000),
+        })
     })
 })
 
         </script>
-        <h1>Billboard</h1>
-        <div id="billboard-content" class="billboard-content"></div>
+        <div id="billboard-content">
+        </div>
     </body>
 </html>

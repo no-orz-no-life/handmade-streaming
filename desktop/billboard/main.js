@@ -38,7 +38,7 @@ let commonOption = {
     }
 }
 
-let skipWidth = 1366
+let skipWidth = 0
 let carouselWidth = 192*2
 let marqueeHeight = 108
 let marqueeOption = Object.assign({}, commonOption, {

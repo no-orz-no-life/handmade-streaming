@@ -16,7 +16,7 @@
     "jquery": "^3.6.0",
     "node-sass": "^5.0.0",
     "sass-loader": "^11.0.1",
-    "slick-carousel": "https://github.com/kenwheeler/slick/",
+    "slick-carousel": "^1.8.1",
     "style-loader": "^2.0.0",
     "webpack": "^5.36.2",
     "webpack-cli": "^4.7.0"
