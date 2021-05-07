@@ -1,0 +1,26 @@
+{
+  "name": "billboard",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "@babel/core": "^7.14.0",
+    "@babel/preset-env": "^7.14.1",
+    "asciidoctor": "^2.2.4",
+    "babel-loader": "^8.2.2",
+    "babel-polyfill": "^6.26.0",
+    "concurrently": "^6.0.2",
+    "css-loader": "^5.2.4",
+    "electron": "^12.0.6",
+    "hmarquee": "https://github.com/ttionya/hMarquee",
+    "jquery": "^3.6.0",
+    "node-sass": "^5.0.0",
+    "sass-loader": "^11.0.1",
+    "style-loader": "^2.0.0",
+    "webpack": "^5.36.2",
+    "webpack-cli": "^4.7.0"
+  },
+  "scripts": {
+    "start": "concurrently --kill-others \"webpack --watch\" \"electron main.js\""
+  }
+}

@@ -1,0 +1,30 @@
+<html>
+    <head>
+        <meta charset="UTF-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <style>
+.m-marquee-content {
+    font-size: 32px;
+}
+        </style>
+    </head>
+    <body>
+        <script src="../node_modules/jquery/dist/jquery.min.js"></script>
+        <script src="../node_modules/hmarquee/dist/hMarquee.min.js"></script>
+        <script src="./index.js"></script>
+        <div id="marquee0" class="marquee"/>
+        <script>
+            lines = ["http://risky-safety.org/~zinnia/"]
+
+            $.hMarquee.marquee({
+                el: $("#marquee0"),
+                externalClass: "marquee",
+                list: lines,
+                minShowCount: 1,
+                fadeInOut: true,
+                alwaysScroll: true,
+                speedPeerSec: 50,
+            })
+        </script>
+    </body>
+</html>
