@@ -13,14 +13,14 @@
 
 h2 {
     font-size: 36px;
-    @include framed-text(#fff, rgba(0,0,0,0.4), 2px, 1px);
+    @include framed-text(#fff, rgb(80, 0, 0), 2px, 1px);
 }
 
 div.paragraph {
     font-size: 24px;
-    @include framed-text(#fff, rgba(255, 0, 0, 0.4), 2px, 1px);
+    @include framed-text(#fff, rgb(0,0,0), 2px, 1px);
 }
 
 .m-marquee-content {
-    @include framed-text(#fff, rgba(0, 0, 255, 0.4), 2px, 1px);
+    @include framed-text(#fff, rgb(0, 0, 120), 2px, 1px);
 }

@@ -20,7 +20,7 @@ class Window {
     }
 }
 
-let debug=true
+let debug=app.commandLine.hasSwitch("debug")
 let commonOption = {
     resizable: debug,
     alwaysOnTop: !debug,
@@ -38,10 +38,10 @@ let commonOption = {
 }
 let skipWidth = 0
 let carouselWidth = 192*2
-let marqueeHeight = 108
+let marqueeHeight = 27
 let marqueeOption = Object.assign({}, commonOption, {
     x: skipWidth,
-    y: debug ? 0 : (1080 - marqueeHeight),
+    y: debug ? 200 : 0 /* (1080 - marqueeHeight) */,
     width: 1920 - carouselWidth,
     height: marqueeHeight,
     title: "Marquee",

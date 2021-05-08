@@ -22,6 +22,7 @@
     "webpack-cli": "^4.7.0"
   },
   "scripts": {
-    "start": "concurrently --kill-others \"webpack --watch\" \"electron main.js\""
+    "start": "concurrently --kill-others \"webpack --watch\" \"electron main.js\"",
+    "start-debug": "concurrently --kill-others \"webpack --watch\" \"electron main.js --debug\""
   }
 }

@@ -7,10 +7,12 @@
 body {
     -webkit-user-select: none;
     user-select: none;
-    background-color: rgba(255, 20, 20, 0.4);
+    background-color: rgb(80, 20, 20);
+    margin: 0;
+    padding: 0;
 }
 .m-marquee-content {
-    font-size: 32px;
+    font-size: 18px;
 }
         </style>
     </head>
@@ -29,7 +31,7 @@ $.hMarquee.marquee({
     minShowCount: 1,
     fadeInOut: true,
     alwaysScroll: true,
-    speedPeerSec: 50,
+    speedPeerSec: 20,
 })
 
 // why can't be called when including it in src/index.js??
