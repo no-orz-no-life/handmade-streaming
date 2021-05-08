@@ -1,0 +1,144 @@
+<html>
+    <head>
+        <meta charset="UTF-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'unsafe-eval';" />
+        <title>Launcher</title>
+        <style>
+body {
+    background-color: rgba(20, 20, 255, 0.4);
+    color: rgba(255, 255, 255, 1);
+    -webkit-app-region: drag;
+    -webkit-user-select: none;
+    user-select: none;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+    border: 5px solid rgb(42, 42, 42);
+    background-color: rgba(24, 24, 24, .7);
+    box-shadow: 0 0 8px 3px #000 inset;
+}
+
+input#query {
+    font-size: 16px;
+    border-radius: 1em;
+    padding: 1em;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin-right: -50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+div.message {
+    font-size: 16px;
+    position: absolute;
+    top: 20%;
+    left: 50%;
+    margin-right: -50%;
+    transform: translate(-50%, -50%);
+}
+
+span#message {
+    text-align: center;
+    width: 100%;
+}
+        </style> 
+    </head>
+    <body>
+        <script src="../node_modules/jquery/dist/jquery.min.js"></script>
+        <script>
+
+const separator = "▸"
+const plugins = [
+    "google",
+    "zht",
+]
+function openURL(url) {
+    window.electron.Open(encodeURI(url))
+}
+function searchByGoogle(query){
+    openURL(`http://www.google.com/search?q=${query}`)
+}
+function message(m) {
+    $("span#message").text(m)
+}
+function tryParse(query)
+{
+    if(query.search(separator) > 0) 
+    {
+
+    } else {
+        // 2. eval
+        try {
+            let v = Function(`"use strict"; return (${query})`)()
+            message(`${v}`)
+        }catch(e){
+            //console.log(e)
+        }
+    }
+}
+$(document).ready(() => {
+    let selector = "input[name=query]"
+    $(selector).focus(() => {
+        $(selector).select()
+    })
+    $(document).focus(() => {
+        $(selector).focus()
+    })
+    $(selector).on("keydown", (e) => {
+        let query = $(selector).val()
+        if(e.key === "Escape") {
+            window.electron.Blur()
+        } else if(e.key === "Tab") {
+            e.preventDefault()
+            if(query.search(separator) >= 0) {
+                return
+            }
+            for(let i = 0; i < plugins.length; i++)
+            {
+                const plugin = plugins[i]
+                if(plugin.startsWith(query)) {
+                    $(selector).val(`${plugin}${separator}`)
+                }
+            }
+        } else if(e.key === "Enter") {
+            e.preventDefault()
+
+            if(query.search(separator) > 0) 
+            {
+                const q = query.split(separator)
+                if(q.length < 2) return
+
+                if(q[0] === "google")
+                {
+                    searchByGoogle(q[1])
+                }
+                else if(q[0] === "zht")
+                {
+                    searchByGoogle(`${q[1]} site:risky-safety.org`)
+                }
+            }
+            else 
+            {
+                // launch
+
+                // search for dir/link
+
+
+
+            }
+        } else {
+            tryParse(query)
+        }
+    })
+    $(selector).focus()
+})
+        </script>
+        <div class="message"><span id="message">Launcher</span></div>
+        <input type="text" id="query" name="query"/>
+    </body>
+</html>
