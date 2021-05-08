@@ -24,7 +24,20 @@ module.exports = {
             {
                 test: /\.css$/,
                 use: ["style-loader", "css-loader"],
-            }
+            },
+            {
+                // 拡張子がsassとscssのファイルを対象とする
+                test: /\.s[ac]ss$/i,
+                use: [
+                  "style-loader",
+                  "css-loader",
+                  "sass-loader",
+                ],
+            },
+            {
+                test: /\.(gif|png|jpg|eot|wof|woff|ttf|svg)$/,
+                type: "asset/inline",
+            },
         ]
     },
     resolve: {

@@ -6,6 +6,13 @@
         <link rel="stylesheet" type="text/css" href="../node_modules/slick-carousel/slick/slick.css"/>
         <link rel="stylesheet" type="text/css" href="../node_modules/slick-carousel/slick/slick-theme.css"/>
         <title>Carousel</title>
+        <style>
+body {
+    background-color: rgba(20, 20, 255, 0.4);
+    color: rgba(255, 255, 255, 1);
+}
+        </style>
+            
     </head>
     <body>
         <script src="../node_modules/jquery/dist/jquery.min.js"></script>
@@ -32,7 +39,7 @@ $(document).ready(() => {
     window.electron.GetCarouselPages(true).then(it => {
         let parent = $(selector) 
         parent.empty()
-        it.forEach(html => parent.append(html))
+        parent.append(it)
     }).then(() => {
         $(selector).slick({
             dots: false,
@@ -49,6 +56,39 @@ $(document).ready(() => {
 
         </script>
         <div id="billboard-content">
+            <!-- sample -->
+            <div class="sect1">
+                <h2 id="_page_1">Page 1</h2>
+                <div class="sectionbody">
+                    <div class="paragraph">
+                        <p>今回やることの説明</p>
+                    </div>
+                </div>
+            </div>
+            <div class="sect1">
+                <h2 id="_page_2">Page 2</h2>
+                <div class="sectionbody">
+                    <div class="paragraph">
+                        <p>環境についての説明</p>
+                    </div>
+                </div>
+            </div>
+            <div class="sect1">
+                <h2 id="_page_3">Page 3</h2>
+                <div class="sectionbody">
+                    <div class="paragraph">
+                        <p>このチャンネルについて</p>
+                    </div>
+                </div>
+            </div>
+            <div class="sect1">
+                <h2 id="_page_4">Page 4</h2>
+                <div class="sectionbody">
+                    <div class="paragraph">
+                        <p>注意・お願い</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </body>
 </html>

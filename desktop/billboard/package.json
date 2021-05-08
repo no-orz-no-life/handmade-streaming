@@ -2,7 +2,7 @@
   "name": "billboard",
   "version": "1.0.0",
   "main": "index.js",
-  "license": "MIT",
+  "license": "BSD-2-Clause",
   "dependencies": {
     "@babel/core": "^7.14.0",
     "@babel/preset-env": "^7.14.1",

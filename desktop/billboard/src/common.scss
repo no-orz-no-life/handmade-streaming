@@ -1,0 +1,26 @@
+@mixin framed-text($foreColor, $frameColor, $offset, $blur){
+    color: $foreColor;
+    text-shadow:
+    $offset $offset $blur $frameColor,
+    $offset (-$offset) $blur $frameColor,
+    (-$offset) $offset $blur $frameColor,
+    (-$offset) (-$offset) $blur $frameColor,
+    $offset 0 $blur $frameColor,
+    (-$offset) 0 $blur $frameColor,
+    0 $offset $blur $frameColor,
+    0 (-$offset) $blur $frameColor;
+}
+
+h2 {
+    font-size: 36px;
+    @include framed-text(#fff, rgba(0,0,0,0.4), 2px, 1px);
+}
+
+div.paragraph {
+    font-size: 24px;
+    @include framed-text(#fff, rgba(255, 0, 0, 0.4), 2px, 1px);
+}
+
+.m-marquee-content {
+    @include framed-text(#fff, rgba(0, 0, 255, 0.4), 2px, 1px);
+}
