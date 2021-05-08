@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, globalShortcut, shell } = require('electron
 const fs = require('fs')
 const fsP = fs.promises
 const path = require('path')
+const express = require('express')()
 
 const shortcutKey = "Alt+Space"
 class Window {
@@ -18,18 +19,20 @@ class Window {
             this.window = null
             globalShortcut.unregister(shortcutKey)
         })
-        globalShortcut.register(shortcutKey, () => {
-            if(this.window.isFocused())
-            {
-                this.window.blur()
-    
-            } else {
-                this.window.focus()
-            }
-        })
+        globalShortcut.register(shortcutKey, this.toggleFocus)
     }
     blur() {
         this.window.blur()
+    }
+    toggleFocus()
+    {
+        if(this.window.isFocused())
+        {
+            this.window.blur()
+
+        } else {
+            this.window.focus()
+        }
     }
 }
 
@@ -71,3 +74,12 @@ ipcMain.on("blur", (event, ...args) => {
     launcher.blur()
 })
 
+
+const httpPort = 4126
+express.get("/toggleFocus", (req, res) => {
+    launcher.toggleFocus()
+    res.send("OK")
+})
+express.listen(httpPort, "127.0.0.1", () => {
+    console.log(`listening http://localhost:${httpPort}/`)
+})
