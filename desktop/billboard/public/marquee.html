@@ -4,19 +4,10 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
         <title>Marquee</title>
         <style>
-body {
-    -webkit-user-select: none;
-    user-select: none;
-    background-color: rgb(80, 20, 20);
-    margin: 0;
-    padding: 0;
-}
-.m-marquee-content {
-    font-size: 18px;
-}
+
         </style>
     </head>
-    <body>
+    <body class="marquee">
         <script src="../node_modules/jquery/dist/jquery.min.js"></script>
         <script src="../node_modules/hmarquee/dist/hMarquee.min.js"></script>
         <script src="./index.js"></script>
@@ -26,7 +17,7 @@ lines = ["initializing... plese wait."]
 
 $.hMarquee.marquee({
     el: $("#marquee0"),
-    externalClass: "marquee",
+    externalClass: "marquee-local",
     list: lines,
     minShowCount: 1,
     fadeInOut: true,
