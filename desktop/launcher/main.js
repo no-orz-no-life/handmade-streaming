@@ -5,6 +5,9 @@ const path = require('path')
 const express = require('express')()
 
 const shortcutKey = "Alt+Space"
+function toggleFocus(){
+    launcher.toggleFocus()
+}
 class Window {
     constructor(windowOption, initialURL) {
         this.windowOption = windowOption
@@ -19,7 +22,7 @@ class Window {
             this.window = null
             globalShortcut.unregister(shortcutKey)
         })
-        globalShortcut.register(shortcutKey, this.toggleFocus)
+        globalShortcut.register(shortcutKey, toggleFocus)
     }
     blur() {
         this.window.blur()
@@ -75,11 +78,16 @@ ipcMain.on("blur", (event, ...args) => {
 })
 
 
-const httpPort = 4126
-express.get("/toggleFocus", (req, res) => {
-    launcher.toggleFocus()
-    res.send("OK")
-})
-express.listen(httpPort, "127.0.0.1", () => {
-    console.log(`listening http://localhost:${httpPort}/`)
-})
+if(process.platform === "linux") 
+{
+    // TODO: Wayland?
+    const httpPort = 4126
+    express.get("/toggleFocus", (req, res) => {
+        launcher.toggleFocus()
+        res.send("OK")
+    })
+    express.listen(httpPort, "127.0.0.1", () => {
+        console.log(`listening http://localhost:${httpPort}/`)
+    })
+   
+}
