@@ -87,6 +87,9 @@ $(document).ready(() => {
     $(document).focus(() => {
         $(selector).focus()
     })
+    $(selector).on("keyup", (e) => {
+        tryParse($(selector).val())
+    })
     $(selector).on("keydown", (e) => {
         let query = $(selector).val()
         if(e.key === "Escape") {
@@ -126,11 +129,7 @@ $(document).ready(() => {
 
                 // search for dir/link
 
-
-
             }
-        } else {
-            tryParse(query)
         }
     })
     $(selector).focus()
