@@ -11,6 +11,11 @@
     0 (-$offset) $blur $frameColor;
 }
 
+body.carousel{
+    background-color: rgb(20, 20, 100);
+    color: rgb(255, 255, 255);
+}
+
 h2 {
     font-size: 36px;
     @include framed-text(#fff, rgb(80, 0, 0), 2px, 1px);
