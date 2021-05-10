@@ -50,6 +50,8 @@ span#message {
         <script src="../node_modules/jquery/dist/jquery.min.js"></script>
         <script>
 
+let candidates = {}
+
 const separator = "▸"
 const plugins = [
     "google",
@@ -64,23 +66,53 @@ function searchByGoogle(query){
 function message(m) {
     $("span#message").text(m)
 }
+
+function matchCandidate(query)
+{
+    const keys = Object.keys(candidates)
+    for(let i = 0; i < keys.length; i++)
+    {
+        const k = keys[i]
+        if(k.search(new RegExp(query, "i")) >= 0)
+        {
+            return k
+        }
+    }
+    return undefined
+}
 function tryParse(query)
 {
     if(query.search(separator) > 0) 
     {
 
     } else {
-        // 2. eval
-        try {
-            let v = Function(`"use strict"; return (${query})`)()
-            message(`${v}`)
-        }catch(e){
-            //console.log(e)
+        message("")
+        const match = matchCandidate(query)
+        console.log(match)
+        if(match !== undefined)
+        {
+            message(match)
+        }
+        else 
+        {
+            // 2. eval
+            try {
+                let v = Function(`"use strict"; return (${query})`)()
+                message(`${v}`)
+            }catch(e){
+                //console.log(e)
+            }
         }
     }
 }
 $(document).ready(() => {
     let selector = "input[name=query]"
+    window.electron.GetCandidates().then(it =>  {
+        candidates = it
+        Object.keys(it).forEach(key => {
+            console.log(`${key} => ${it[key]}`)
+        })
+    })
     $(selector).focus(() => {
         $(selector).select()
     })
@@ -125,10 +157,11 @@ $(document).ready(() => {
             }
             else 
             {
-                // launch
-
-                // search for dir/link
-
+                let match = matchCandidate(query)
+                if(match !== undefined)
+                {
+                    window.electron.OpenCandidate(match)
+                }
             }
         }
     })

@@ -3,6 +3,7 @@ const fs = require('fs')
 const fsP = fs.promises
 const path = require('path')
 const express = require('express')()
+const iconv = require("iconv-lite")
 
 const shortcutKey = "Alt+Space"
 function toggleFocus(){
@@ -77,6 +78,52 @@ ipcMain.on("blur", (event, ...args) => {
     launcher.blur()
 })
 
+const basePath = "c:/shortcuts"
+let candidates = {}
+
+function getCandidates(startPath) {
+    let ret = {}
+
+    function core(dic, dir){
+        let files = fs.readdirSync(dir)
+        // TODO: directory that contains 2-bytes chrs
+        files.forEach(it => {
+            let p = path.join(dir, it.toString())
+            let stat = fs.statSync(p)
+            if(stat.isDirectory())
+            {
+                core(ret, p)
+            }
+            if(stat.isSymbolicLink())
+            {
+                const link = fs.readlinkSync(p)
+                ret[it] = link
+            }
+            else if(it.endsWith(".lnk"))
+            {
+                ret[it] = p
+            }
+        })
+    }
+    core(ret, startPath)
+    return ret
+}
+
+ipcMain.handle("getCandidates", (events) => {
+    candidates = getCandidates(basePath)
+    return candidates
+})
+
+ipcMain.on("openCandidate", (event, key) => {
+    console.log(`invoking... ${key}`)
+    if(key in candidates)
+    {
+        const v = candidates[key]
+        console.log(`${key} => ${v}`)
+        shell.openExternal(v)
+        launcher.blur()
+    }
+})
 
 if(process.platform === "linux") 
 {
@@ -88,6 +135,5 @@ if(process.platform === "linux")
     })
     express.listen(httpPort, "127.0.0.1", () => {
         console.log(`listening http://localhost:${httpPort}/`)
-    })
-   
+    })   
 }
