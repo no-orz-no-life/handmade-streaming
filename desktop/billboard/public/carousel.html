@@ -23,28 +23,47 @@ function intervalTimer(intervalMsec, callback)
     setTimeout(() => { intervalTimer(intervalMsec, callback)}, delay);
 }
 
-intervalTimer(1000, () => {
-    // refresh when updated
-})
+const slickOptions = 
+{
+    dots: false,
+    arrows: false,
+    infinite: true,
+    speed: 500,
+    cssEase: "linear",
+    fade: true,
+    autoplay: true,
+    autoplaySpeed: debug ? (3 * 1000) : (15 * 1000),
+}
+
 let selector = "div#billboard-content"
-$(document).ready(() => {
-    var count = 0
-    window.electron.GetCarouselPages(true).then(it => {
-        let parent = $(selector) 
-        parent.empty()
-        parent.append(it)
-    }).then(() => {
-        $(selector).slick({
-            dots: false,
-            arrows: false,
-            infinite: true,
-            speed: 500,
-            cssEase: "linear",
-            fade: true,
-            autoplay: true,
-            autoplaySpeed: debug ? (3 * 1000) : (15 * 1000),
-        })
+function updatePage(initial) {
+    let parent = $(selector)
+    window.electron.GetCarouselPages(initial).then(it => {
+        if(it !== "unchanged")
+        {
+            console.log("reloading...")
+            if(!initial) {
+                parent.slick("unslick")
+            }
+            parent.empty()
+            parent.append(it)
+            return true
+        }
+        else {
+            return false
+        }
+    }).then((needsUpdate) => {
+        if(needsUpdate) {
+            parent.slick(slickOptions)
+        }
     })
+}
+intervalTimer(1000, () => {
+    updatePage(false)
+})
+
+$(document).ready(() => {
+    updatePage(true)
 })
 
         </script>
