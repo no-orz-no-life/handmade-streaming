@@ -82,11 +82,12 @@ function matchCandidate(query)
 }
 function tryParse(query)
 {
+    message("")
+    if(query.length === 0) return
     if(query.search(separator) > 0) 
     {
 
     } else {
-        message("")
         const match = matchCandidate(query)
         console.log(match)
         if(match !== undefined)

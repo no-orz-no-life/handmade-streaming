@@ -33,8 +33,8 @@ class Window {
         if(this.window.isFocused())
         {
             this.window.blur()
-
         } else {
+            this.window.show()
             this.window.focus()
         }
     }
@@ -78,7 +78,18 @@ ipcMain.on("blur", (event, ...args) => {
     launcher.blur()
 })
 
-const basePath = "c:/shortcuts"
+function getBasePath() {
+    if(process.platform === "win32")
+    {
+        return "c:/shortcut"
+    }
+    else if(process.platform === "linux")
+    {
+        return "~/shortcut"
+    }
+}
+
+const basePath = getBasePath()
 let candidates = {}
 
 function getCandidates(startPath) {
@@ -86,7 +97,6 @@ function getCandidates(startPath) {
 
     function core(dic, dir){
         let files = fs.readdirSync(dir)
-        // TODO: directory that contains 2-bytes chrs
         files.forEach(it => {
             let p = path.join(dir, it.toString())
             let stat = fs.statSync(p)
@@ -120,7 +130,7 @@ ipcMain.on("openCandidate", (event, key) => {
     {
         const v = candidates[key]
         console.log(`${key} => ${v}`)
-        shell.openExternal(v)
+        shell.openPath(v)
         launcher.blur()
     }
 })
