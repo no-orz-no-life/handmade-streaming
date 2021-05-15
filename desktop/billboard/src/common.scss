@@ -11,22 +11,6 @@
     0 (-$offset) $blur $frameColor;
 }
 
-body.carousel{
-    background-color: rgb(20, 20, 100);
-    color: rgb(255, 255, 255);
-}
-
-h2 {
-    font-size: 36px;
-    @include framed-text(#fff, rgb(80, 0, 0), 2px, 1px);
-}
-
-div.paragraph {
-    font-size: 24px;
-    @include framed-text(#fff, rgb(0,0,0), 2px, 1px);
-}
-
-
 $marquee-bg: rgb(40, 10, 10);
 body.marquee {
     -webkit-user-select: none;
@@ -40,16 +24,68 @@ body.marquee {
     .m-marquee-content:before {
         background-image: -webkit-linear-gradient(-90deg, rgba($marquee-bg, 0) 0%, rgba($marquee-bg, 1) 100%); 
         background-image: linear-gradient(-90deg, rgba($marquee-bg, 0) 0%, rgba($marquee-bg, 1) 100%);
-        width: 100px;
+        width: 50px;
     }
     .m-marquee-content:after {
         background-image: -webkit-linear-gradient(90deg, rgba($marquee-bg, 0) 0%, rgba($marquee-bg, 1) 100%);
         background-image: linear-gradient(90deg, rgba($marquee-bg, 0) 0%, rgba($marquee-bg, 1) 100%); 
-        width: 100px;
+        width: 50px;
     }
 }
 
 .m-marquee-content {
     @include framed-text(#fff, rgb(0, 0, 60), 2px, 1px);
     font-size: 18px;
+}
+
+$carousel-paddingX: 10px;
+body.carousel{
+    background-color: rgb(20, 20, 100);
+    color: rgb(255, 255, 255);
+    border-width: 0px;
+    padding: 0px;
+    margin: 0px;
+    p {
+        margin-block-start: 0px;
+        margin-block-end: 10px;
+    }
+}
+
+h2 {
+    font-size: 36px;
+    background-color: rgba(30, 140, 30, 0.7);
+    border-style: solid;
+    border-color: rgba(30, 140, 30, 1);
+    border-width: 4px 0px 4px 0px;
+    @include framed-text(#fff, rgb(80, 0, 0), 2px, 1px);
+    padding-left: 10px;
+    margin-block-start: 20px;
+    margin-block-end: 30px;
+}
+
+h3 {
+    font-size: 28px;
+    @include framed-text(#fff, rgb(80, 0, 0), 2px, 1px);
+    padding-left: 10px;
+    margin-block-start: 20px;
+    margin-block-end: 10px;
+}
+
+h4 {
+    font-size: 24px;
+    @include framed-text(#fff, rgb(80, 0, 0), 2px, 1px);
+    padding-left: 10px;
+    margin-block-start: 10px;
+    margin-block-end: 0px;
+}
+
+div.paragraph {
+    font-size: 22px;
+    padding-left: $carousel-paddingX;
+    padding-right: $carousel-paddingX;
+    @include framed-text(#fff, rgb(0,0,0), 2px, 1px);
+}
+
+.note>p {
+    font-size: 12px;
 }
