@@ -28,7 +28,7 @@ let commonOption = {
     movable: debug,
     focusable: debug,
     frame: debug,
-    transparent: !debug,
+    transparent: false,
 
     fullscreenable: false,
     "skip-taskbar": !debug,
@@ -111,5 +111,11 @@ ipcMain.handle("getCarouselPages", async (event, force) => {
     else
     {
         return "unchanged"
+    }
+})
+
+ipcMain.handle("getSettings", async (event) => {
+    return {
+        "debug": debug
     }
 })
