@@ -48,6 +48,9 @@ body.carousel{
     p {
         margin-block-start: 0px;
         margin-block-end: 10px;
+        @include framed-text(#fff, rgb(0,0,0), 2px, 1px);
+        font-size: 18px;
+        margin-right: 20px;
     }
 }
 
@@ -59,6 +62,7 @@ h2 {
     border-width: 4px 0px 4px 0px;
     @include framed-text(#fff, rgb(80, 0, 0), 2px, 1px);
     padding-left: 10px;
+    padding-bottom: 4px;
     margin-block-start: 20px;
     margin-block-end: 30px;
 }
@@ -66,8 +70,12 @@ h2 {
 h3 {
     font-size: 28px;
     @include framed-text(#fff, rgb(80, 0, 0), 2px, 1px);
+    margin-left: 10px;
+    border-style: solid;
+    border-width: 0px 0px 0px 20px;
+    border-color: rgb(173, 207, 18);
     padding-left: 10px;
-    margin-block-start: 20px;
+    margin-block-start: 40px;
     margin-block-end: 10px;
 }
 
@@ -80,10 +88,8 @@ h4 {
 }
 
 div.paragraph {
-    font-size: 22px;
     padding-left: $carousel-paddingX;
     padding-right: $carousel-paddingX;
-    @include framed-text(#fff, rgb(0,0,0), 2px, 1px);
 }
 
 .note>p {
