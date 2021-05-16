@@ -12,7 +12,8 @@
         <script src="../node_modules/slick-carousel/slick/slick.min.js"></script>
         <script src="./index.js"></script>
         <script>
-const debug = true
+
+
 function intervalTimer(intervalMsec, callback)
 {
     var now = new Date();
@@ -23,49 +24,49 @@ function intervalTimer(intervalMsec, callback)
     setTimeout(() => { intervalTimer(intervalMsec, callback)}, delay);
 }
 
-const slickOptions = 
-{
-    dots: false,
-    arrows: false,
-    infinite: true,
-    speed: 500,
-    cssEase: "linear",
-    fade: true,
-    autoplay: true,
-    autoplaySpeed: debug ? (3 * 1000) : (15 * 1000),
-}
-
-let selector = "div#billboard-content"
-function updatePage(initial) {
-    let parent = $(selector)
-    window.electron.GetCarouselPages(initial).then(it => {
-        if(it !== "unchanged")
-        {
-            console.log("reloading...")
-            if(!initial) {
-                parent.slick("unslick")
-            }
-            parent.empty()
-            parent.append(it)
-            return true
-        }
-        else {
-            return false
-        }
-    }).then((needsUpdate) => {
-        if(needsUpdate) {
-            parent.slick(slickOptions)
-        }
-    })
-}
-intervalTimer(1000, () => {
-    updatePage(false)
-})
-
 $(document).ready(() => {
-    updatePage(true)
-})
+    window.electron.GetSettings().then(setting => {
+        const slickOptions = 
+        {
+            dots: false,
+            arrows: false,
+            infinite: true,
+            speed: 500,
+            cssEase: "linear",
+            fade: true,
+            autoplay: true,
+            autoplaySpeed: setting.debug ? (3 * 1000) : (15 * 1000),
+        }
 
+        let selector = "div#billboard-content"
+        function updatePage(initial) {
+            let parent = $(selector)
+            window.electron.GetCarouselPages(initial).then(it => {
+                if(it !== "unchanged")
+                {
+                    console.log("reloading...")
+                    if(!initial) {
+                        parent.slick("unslick")
+                    }
+                    parent.empty()
+                    parent.append(it)
+                    return true
+                }
+                else {
+                    return false
+                }
+            }).then((needsUpdate) => {
+                if(needsUpdate) {
+                    parent.slick(slickOptions)
+                }
+            })
+        }
+        updatePage(true)
+        intervalTimer(1000, () => {
+            updatePage(false)
+        })
+    })
+})
         </script>
         <div id="billboard-content">
             <!-- sample -->
