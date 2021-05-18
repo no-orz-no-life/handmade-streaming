@@ -11,7 +11,7 @@
     0 (-$offset) $blur $frameColor;
 }
 
-$marquee-bg: rgb(40, 10, 10);
+$marquee-bg: rgb(94, 83, 83);
 body.marquee {
     -webkit-user-select: none;
     user-select: none;
@@ -40,7 +40,7 @@ body.marquee {
 
 $carousel-paddingX: 10px;
 body.carousel{
-    background-color: rgb(20, 20, 100);
+    background-color: rgb(85, 85, 97);
     color: rgb(255, 255, 255);
     border-width: 0px;
     padding: 0px;

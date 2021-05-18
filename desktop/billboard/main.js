@@ -4,6 +4,9 @@ const fsP = fs.promises
 const path = require('path')
 const asciidoctor = require('asciidoctor')() 
 
+if(process.platform === "linux")
+{
+}
 class Window {
     constructor(windowOption, initialURL) {
         this.windowOption = windowOption
