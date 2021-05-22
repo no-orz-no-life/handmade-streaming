@@ -56,12 +56,16 @@ const separator = "▸"
 const plugins = [
     "google",
     "zht",
+    "duckduckgo",
 ]
 function openURL(url) {
-    window.electron.Open(encodeURI(url))
+    window.electron.Open(url)
 }
 function searchByGoogle(query){
-    openURL(`http://www.google.com/search?q=${query}`)
+    openURL(`http://www.google.com/search?q=${encodeURIComponent(query)}`)
+}
+function searchByDuckduckgo(query){
+    openURL(`http://duckduckgo.com/?q=${encodeURIComponent(query)}`)
 }
 function message(m) {
     $("span#message").text(m)
@@ -150,6 +154,10 @@ $(document).ready(() => {
                 if(q[0] === "google")
                 {
                     searchByGoogle(q[1])
+                }
+                else if(q[0] == "duckduckgo")
+                {
+                    searchByDuckduckgo(q[1])
                 }
                 else if(q[0] === "zht")
                 {
