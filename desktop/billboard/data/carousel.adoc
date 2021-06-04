@@ -16,7 +16,7 @@ Wayland関係はあまり触ったことがないが、Ubuntuの環境構築自�
 === インストール済
 
 git / OBS Studioのビルド・動作に必要なもの / VSCodeと依存パッケージ / 
-Node.js 関係 (Node / Yarn) / iBus-skk / openjdk-11 / FreeMind
+Node.js 関係 (Node / Yarn) / iBus-skk / openjdk-11 / FreeMind / emacs-nox / Erlang
 
 === これからやること
 
@@ -27,7 +27,7 @@ Node.js 関係 (Node / Yarn) / iBus-skk / openjdk-11 / FreeMind
 
 VAIO T Series (SVT1113AJ)
 
-* ntel® Core™ i7-3537U CPU @ 2.00GHz × 4 
+* Intel® Core™ i7-3537U CPU @ 2.00GHz × 4 
 * メモリ12GB
 * SSD 256GB
 
