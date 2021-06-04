@@ -16,22 +16,20 @@ Wayland関係はあまり触ったことがないが、Ubuntuの環境構築自�
 === インストール済
 
 git / OBS Studioのビルド・動作に必要なもの / VSCodeと依存パッケージ / 
-Node.js 関係 (Node / Yarn)
+Node.js 関係 (Node / Yarn) / iBus-skk / openjdk-11 / FreeMind
 
 === これからやること
 
-* 日本語入力関係
-* FreeMind or Freeplane
 
 == 環境
 
 === マシン
 
-VAIO Duo 11
+VAIO T Series (SVT1113AJ)
 
-* Core i5-3317U 1.7GHz
-* メモリ4GB
-* SSD 128GB
+* ntel® Core™ i7-3537U CPU @ 2.00GHz × 4 
+* メモリ12GB
+* SSD 256GB
 
 === OS
 
