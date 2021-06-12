@@ -1,25 +1,23 @@
 == 今回のテーマ
 
-Ubuntu環境の構築をはじめる。
+動画の素材 (subtitle / motion graphics) を作るための基盤をつくる。
+
 
 === レベル
 
-★☆☆ (低)
+★★☆ (中) 
 
 {nbsp}
 
-Wayland関係はあまり触ったことがないが、Ubuntuの環境構築自体は比較的慣れています。
+OpenGLの経験はあるがOpenTKは触ったことがない。
 
 [.note]
 ※ 配信者の自信度を示すものであり、内容の難しさを示すものではありません。
 
-=== インストール済
-
-git / OBS Studioのビルド・動作に必要なもの / VSCodeと依存パッケージ / 
-Node.js 関係 (Node / Yarn) / iBus-skk / openjdk-11 / FreeMind / emacs-nox / Erlang
-
 === これからやること
 
+* ShotcutとMLTのrepositoryを手元に置いておく。
+* OpenTK を F# で触ってみる。
 
 == 環境
 
