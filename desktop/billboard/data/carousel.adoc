@@ -16,7 +16,7 @@ OpenGLの経験はあるがOpenTKは触ったことがない。
 
 === これからやること
 
-* ShotcutとMLTのrepositoryを手元に置いておく。
+* [line-through]#ShotcutとMLTのrepositoryを手元に置いておく。#
 * OpenTK を F# で触ってみる。
 
 == 環境

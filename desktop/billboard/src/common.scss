@@ -51,6 +51,9 @@ body.carousel{
         @include framed-text(#fff, rgb(0,0,0), 2px, 1px);
         font-size: 18px;
         margin-right: 20px;
+        span.line-through {
+            text-decoration: line-through;
+        }
     }
 }
 
