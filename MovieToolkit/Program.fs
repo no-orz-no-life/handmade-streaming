@@ -1,15 +1,10 @@
 open System
 open System.IO
-open OpenTK.Graphics
-open OpenTK.Windowing.Desktop
+open OpenTK.Mathematics
+open OpenTK.Graphics.OpenGL4
 open OpenTK.Windowing.Common
 open OpenTK.Windowing.GraphicsLibraryFramework
-open OpenTK.Graphics.OpenGL
-
-open System.Runtime.InteropServices
-
-
-let sizeof(t) = Marshal.SizeOf t
+open OpenTK.Windowing.Desktop
 
 type Shader(vertexPath:string, fragmentPath:string)  =
     let mutable handle = 0
@@ -61,17 +56,23 @@ type Shader(vertexPath:string, fragmentPath:string)  =
     override self.Finalize() = cleanup(false)
         
 
-type Game(width: int, height: int, title: string) =
-    inherit GameWindow(GameWindowSettings.Default, NativeWindowSettings.Default)
-    let mutable VertexBufferObject = 0
-    let mutable VertexArrayObject = 0
-    let mutable ElementBufferObject = 0
+type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWindowSettings) =
+    inherit GameWindow(gameWindowSettings, nativeWindowSettings)
+    let mutable vertexBufferObject = 0
+    let mutable vertexArrayObject = 0
+    let mutable elementBufferObject = 0
+    let triangle = false
     [<DefaultValue>]val mutable shader:Shader
-    member self.vertices = [|
+    member self.verticesRect = [|
          0.5f;  0.5f; 0.0f;  // top right
          0.5f; -0.5f; 0.0f;  // bottom right
         -0.5f; -0.5f; 0.0f;  // bottom left
         -0.5f;  0.5f; 0.0f;  // top left
+    |]
+    member self.verticesTri = [|
+        -0.5f; -0.5f; 0.0f // Bottom-left vertex
+        0.5f; -0.5f; 0.0f // Bottom-right vertex
+        0.0f;  0.5f; 0.0f  // Top vertex
     |]
     member self.indices = [|
         0u; 1u; 3u;    // first triangle
@@ -85,17 +86,23 @@ type Game(width: int, height: int, title: string) =
             base.OnUpdateFrame(e)
     override self.OnLoad() =
         GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f)
-        VertexBufferObject <- GL.GenBuffer()
-        GL.BindBuffer(BufferTarget.ArrayBuffer, VertexBufferObject)
-        GL.BufferData(BufferTarget.ArrayBuffer, self.vertices.Length * sizeof(typeof<float>), self.vertices, BufferUsageHint.StaticDraw)
-        VertexArrayObject <- GL.GenVertexArray()
-        GL.BindVertexArray(VertexArrayObject)
-        GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 3 * sizeof(typeof<float>), 0)
+
+        vertexBufferObject <- GL.GenBuffer()
+        GL.BindBuffer(BufferTarget.ArrayBuffer, vertexBufferObject)
+        if triangle then
+            GL.BufferData(BufferTarget.ArrayBuffer, self.verticesTri.Length * sizeof<float32>, self.verticesTri, BufferUsageHint.StaticDraw)
+        else
+            GL.BufferData(BufferTarget.ArrayBuffer, self.verticesRect.Length * sizeof<float32>, self.verticesRect, BufferUsageHint.StaticDraw)
+
+        vertexArrayObject <- GL.GenVertexArray()
+        GL.BindVertexArray(vertexArrayObject)
+        GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 3 * sizeof<float32>, 0)
         GL.EnableVertexAttribArray(0)
 
-        ElementBufferObject <- GL.GenBuffer()
-        GL.BindBuffer(BufferTarget.ElementArrayBuffer, ElementBufferObject)
-        GL.BufferData(BufferTarget.ElementArrayBuffer, self.indices.Length * sizeof(typeof<uint>), self.indices, BufferUsageHint.StaticDraw)
+        if not triangle then
+            elementBufferObject <- GL.GenBuffer()
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, elementBufferObject)
+            GL.BufferData(BufferTarget.ElementArrayBuffer, self.indices.Length * sizeof<uint>, self.indices, BufferUsageHint.StaticDraw)
 
         self.shader <- new Shader("shader.vert", "shader.frag")
         self.shader.Use()
@@ -104,8 +111,11 @@ type Game(width: int, height: int, title: string) =
     override self.OnRenderFrame(e:FrameEventArgs) =
         GL.Clear(ClearBufferMask.ColorBufferBit)
         self.shader.Use()
-        GL.BindVertexArray(VertexArrayObject)
-        GL.DrawElements(PrimitiveType.Triangles, self.indices.Length, DrawElementsType.UnsignedInt, 0)
+        GL.BindVertexArray(vertexArrayObject)
+        if triangle then
+            GL.DrawArrays(PrimitiveType.Triangles, 0, 3)
+        else
+            GL.DrawElements(PrimitiveType.Triangles, self.indices.Length, DrawElementsType.UnsignedInt, 0)
 
         self.SwapBuffers()
         base.OnRenderFrame(e)
@@ -117,16 +127,23 @@ type Game(width: int, height: int, title: string) =
         GL.BindVertexArray(0)
         GL.UseProgram(0)
 
-        GL.DeleteBuffer(VertexBufferObject)
-        GL.DeleteBuffer(ElementBufferObject)
-        GL.DeleteVertexArray(VertexArrayObject);
+        GL.DeleteBuffer(vertexBufferObject)
+        GL.DeleteBuffer(elementBufferObject)
+        GL.DeleteVertexArray(vertexArrayObject);
         (self.shader :> IDisposable).Dispose()
         base.OnUnload()
 
 
 [<EntryPoint>]
 let main argv =
-    use game = new Game(800, 600, "Learn OpenTK")
+    let nativeWindowSettings = 
+        NativeWindowSettings()
+        |> (fun it -> 
+                it.Size <- Vector2i(800, 600)
+                it.Title <- "Learn OpenTK"
+                it)
+   
+    use game = new Game(GameWindowSettings.Default, nativeWindowSettings)
     game.Run()
     0
 
