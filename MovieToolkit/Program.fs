@@ -11,7 +11,7 @@ open System.Runtime.InteropServices
 
 let sizeof(t) = Marshal.SizeOf t
 
-type Shader(vertexPath:string, fragmentPath:string) as self =
+type Shader(vertexPath:string, fragmentPath:string)  =
     let mutable handle = 0
     let mutable disposed = false
     let cleanup(disposing:bool) = 
@@ -21,21 +21,28 @@ type Shader(vertexPath:string, fragmentPath:string) as self =
                 () // unmanaged cleanup code 
             GL.DeleteProgram(handle)
     do
-        let vertexShaderSource = File.ReadAllText(vertexPath)
-        let fragmentShaderSource = File.ReadAllText(fragmentPath)
+        let compileShaderFromSourceFile shaderType path = 
+            let source = File.ReadAllText(path)
+            let shader = GL.CreateShader(shaderType)
+            GL.ShaderSource(shader, source)
+            GL.CompileShader(shader)
+            match GL.GetShaderInfoLog(shader) with
+            | "" -> Ok(shader)
+            | infoLog -> Error(sprintf "%A" infoLog)
+        
+        let getResultOrFail r =
+            match r with
+            | Ok(v) -> v
+            | Error(message) -> failwith message
 
-        let vertexShader = GL.CreateShader(ShaderType.VertexShader)
-        GL.ShaderSource(vertexShader, vertexShaderSource)
-        let fragmentShader = GL.CreateShader(ShaderType.FragmentShader)
-        GL.ShaderSource(fragmentShader, fragmentShaderSource)
-        GL.CompileShader(vertexShader)
-        match GL.GetShaderInfoLog(vertexShader) with
-        | "" -> ()
-        | infoLogVert -> printfn "%A" infoLogVert
-        GL.CompileShader(fragmentShader)
-        match GL.GetShaderInfoLog(fragmentShader) with
-        | "" -> ()
-        | infoLogFrag -> printfn "%A" infoLogFrag
+        let vertexShader =
+            compileShaderFromSourceFile ShaderType.VertexShader vertexPath
+            |> getResultOrFail
+        
+        let fragmentShader = 
+            compileShaderFromSourceFile ShaderType.FragmentShader fragmentPath
+            |> getResultOrFail
+
         handle <- GL.CreateProgram()
         GL.AttachShader(handle, vertexShader)
         GL.AttachShader(handle, fragmentShader)
@@ -57,8 +64,8 @@ type Shader(vertexPath:string, fragmentPath:string) as self =
 type Game(width: int, height: int, title: string) =
     inherit GameWindow(GameWindowSettings.Default, NativeWindowSettings.Default)
     let mutable VertexBufferObject = 0
-    [<DefaultValue>]val mutable shader:Shader
     let mutable VertexArrayObject = 0
+    [<DefaultValue>]val mutable shader:Shader
     member self.vertices = [|
         -0.5f; -0.5f; 0.0f //Bottom-left vertex
         0.5f; -0.5f; 0.0f  //Bottom-right vertex
@@ -67,7 +74,7 @@ type Game(width: int, height: int, title: string) =
     override self.OnUpdateFrame(e:FrameEventArgs) =
         let input = self.KeyboardState
         if input.IsKeyDown(Keys.Escape) = true then
-            Environment.Exit(0)
+            self.Close()
         else
             base.OnUpdateFrame(e)
     override self.OnLoad() =
@@ -97,8 +104,12 @@ type Game(width: int, height: int, title: string) =
         base.OnResize(e)
     override self.OnUnload() = 
         GL.BindBuffer(BufferTarget.ArrayBuffer, 0)
+        GL.BindVertexArray(0)
+        GL.UseProgram(0)
+
         GL.DeleteBuffer(VertexBufferObject)
-        //self.shader.Dispose()
+        GL.DeleteVertexArray(VertexArrayObject);
+        (self.shader :> IDisposable).Dispose()
         base.OnUnload()
 
 
