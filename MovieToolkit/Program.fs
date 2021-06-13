@@ -65,11 +65,17 @@ type Game(width: int, height: int, title: string) =
     inherit GameWindow(GameWindowSettings.Default, NativeWindowSettings.Default)
     let mutable VertexBufferObject = 0
     let mutable VertexArrayObject = 0
+    let mutable ElementBufferObject = 0
     [<DefaultValue>]val mutable shader:Shader
     member self.vertices = [|
-        -0.5f; -0.5f; 0.0f //Bottom-left vertex
-        0.5f; -0.5f; 0.0f  //Bottom-right vertex
-        0.0f;  0.5f; 0.0f  //Top vertex
+         0.5f;  0.5f; 0.0f;  // top right
+         0.5f; -0.5f; 0.0f;  // bottom right
+        -0.5f; -0.5f; 0.0f;  // bottom left
+        -0.5f;  0.5f; 0.0f;  // top left
+    |]
+    member self.indices = [|
+        0u; 1u; 3u;    // first triangle
+        1u; 2u; 3u;    // second triangle
     |]
     override self.OnUpdateFrame(e:FrameEventArgs) =
         let input = self.KeyboardState
@@ -87,6 +93,10 @@ type Game(width: int, height: int, title: string) =
         GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 3 * sizeof(typeof<float>), 0)
         GL.EnableVertexAttribArray(0)
 
+        ElementBufferObject <- GL.GenBuffer()
+        GL.BindBuffer(BufferTarget.ElementArrayBuffer, ElementBufferObject)
+        GL.BufferData(BufferTarget.ElementArrayBuffer, self.indices.Length * sizeof(typeof<uint>), self.indices, BufferUsageHint.StaticDraw)
+
         self.shader <- new Shader("shader.vert", "shader.frag")
         self.shader.Use()
 
@@ -95,9 +105,9 @@ type Game(width: int, height: int, title: string) =
         GL.Clear(ClearBufferMask.ColorBufferBit)
         self.shader.Use()
         GL.BindVertexArray(VertexArrayObject)
-        GL.DrawArrays(PrimitiveType.Triangles, 0, 3)
+        GL.DrawElements(PrimitiveType.Triangles, self.indices.Length, DrawElementsType.UnsignedInt, 0)
 
-        self.Context.SwapBuffers()
+        self.SwapBuffers()
         base.OnRenderFrame(e)
     override self.OnResize(e:ResizeEventArgs) =
         GL.Viewport(0, 0, e.Width, e.Height)
@@ -108,6 +118,7 @@ type Game(width: int, height: int, title: string) =
         GL.UseProgram(0)
 
         GL.DeleteBuffer(VertexBufferObject)
+        GL.DeleteBuffer(ElementBufferObject)
         GL.DeleteVertexArray(VertexArrayObject);
         (self.shader :> IDisposable).Dispose()
         base.OnUnload()
