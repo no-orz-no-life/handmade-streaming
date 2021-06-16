@@ -54,6 +54,7 @@ type Shader(vertexPath:string, fragmentPath:string)  =
             cleanup(true)
             GC.SuppressFinalize(self)
     override self.Finalize() = cleanup(false)
+    member self.Handle = handle
         
 
 type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWindowSettings) =
@@ -61,18 +62,13 @@ type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWind
     let mutable vertexBufferObject = 0
     let mutable vertexArrayObject = 0
     let mutable elementBufferObject = 0
-    let triangle = false
+    let timer = System.Diagnostics.Stopwatch()
     [<DefaultValue>]val mutable shader:Shader
-    member self.verticesRect = [|
-         0.5f;  0.5f; 0.0f;  // top right
-         0.5f; -0.5f; 0.0f;  // bottom right
-        -0.5f; -0.5f; 0.0f;  // bottom left
-        -0.5f;  0.5f; 0.0f;  // top left
-    |]
-    member self.verticesTri = [|
-        -0.5f; -0.5f; 0.0f // Bottom-left vertex
-        0.5f; -0.5f; 0.0f // Bottom-right vertex
-        0.0f;  0.5f; 0.0f  // Top vertex
+    member self.vertices = [|
+         // positions        // colors
+        0.5f; -0.5f; 0.0f;  1.0f; 0.0f; 0.0f;   // bottom right
+        -0.5f; -0.5f; 0.0f;  0.0f; 1.0f; 0.0f;   // bottom left
+        0.0f;  0.5f; 0.0f;  0.0f; 0.0f; 1.0f;    // top 
     |]
     member self.indices = [|
         0u; 1u; 3u;    // first triangle
@@ -89,33 +85,35 @@ type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWind
 
         vertexBufferObject <- GL.GenBuffer()
         GL.BindBuffer(BufferTarget.ArrayBuffer, vertexBufferObject)
-        if triangle then
-            GL.BufferData(BufferTarget.ArrayBuffer, self.verticesTri.Length * sizeof<float32>, self.verticesTri, BufferUsageHint.StaticDraw)
-        else
-            GL.BufferData(BufferTarget.ArrayBuffer, self.verticesRect.Length * sizeof<float32>, self.verticesRect, BufferUsageHint.StaticDraw)
+        GL.BufferData(BufferTarget.ArrayBuffer, self.vertices.Length * sizeof<float32>, self.vertices, BufferUsageHint.StaticDraw)
 
         vertexArrayObject <- GL.GenVertexArray()
         GL.BindVertexArray(vertexArrayObject)
-        GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 3 * sizeof<float32>, 0)
+        GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 6 * sizeof<float32>, 0)
         GL.EnableVertexAttribArray(0)
+        GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, 6 * sizeof<float32>, 3 * sizeof<float32>)
+        GL.EnableVertexAttribArray(1)
 
-        if not triangle then
-            elementBufferObject <- GL.GenBuffer()
-            GL.BindBuffer(BufferTarget.ElementArrayBuffer, elementBufferObject)
-            GL.BufferData(BufferTarget.ElementArrayBuffer, self.indices.Length * sizeof<uint>, self.indices, BufferUsageHint.StaticDraw)
+        elementBufferObject <- GL.GenBuffer()
+        GL.BindBuffer(BufferTarget.ElementArrayBuffer, elementBufferObject)
+        GL.BufferData(BufferTarget.ElementArrayBuffer, self.indices.Length * sizeof<uint>, self.indices, BufferUsageHint.StaticDraw)
 
         self.shader <- new Shader("shader.vert", "shader.frag")
         self.shader.Use()
 
+        timer.Start()
         base.OnLoad()
     override self.OnRenderFrame(e:FrameEventArgs) =
         GL.Clear(ClearBufferMask.ColorBufferBit)
         self.shader.Use()
+        let timeValue = timer.Elapsed.TotalSeconds
+(*        let greenValue:float32 = (Math.Sin(timeValue) |> float32) / (2.0f + 0.5f)
+        let vertexColorLocation = GL.GetUniformLocation(self.shader.Handle, "ourColor")
+        GL.Uniform4(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
+*)
         GL.BindVertexArray(vertexArrayObject)
-        if triangle then
-            GL.DrawArrays(PrimitiveType.Triangles, 0, 3)
-        else
-            GL.DrawElements(PrimitiveType.Triangles, self.indices.Length, DrawElementsType.UnsignedInt, 0)
+        GL.DrawArrays(PrimitiveType.Triangles, 0, 3)
+        //GL.DrawElements(PrimitiveType.Triangles, self.indices.Length, DrawElementsType.UnsignedInt, 0)
 
         self.SwapBuffers()
         base.OnRenderFrame(e)
