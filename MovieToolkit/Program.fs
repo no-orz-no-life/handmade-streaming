@@ -63,7 +63,7 @@ type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWind
     let mutable vertexArrayObject = 0
     let mutable elementBufferObject = 0
     let timer = System.Diagnostics.Stopwatch()
-    member self.pointer = System.Runtime.InteropServices.Marshal.AllocHGlobal(sizeof<float32> * 4 * self.Size.X * self.Size.Y)
+    member self.pointer = System.Runtime.InteropServices.Marshal.AllocHGlobal(4 * self.Size.X * self.Size.Y)
     [<DefaultValue>]val mutable shader:Shader
     member self.vertices = [|
          // positions        // colors
@@ -116,18 +116,15 @@ type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWind
         GL.DrawArrays(PrimitiveType.Triangles, 0, 3)
         //GL.DrawElements(PrimitiveType.Triangles, self.indices.Length, DrawElementsType.UnsignedInt, 0)
 
-        GL.ReadPixels(0, 0, self.Size.X, self.Size.Y, PixelFormat.Rgba, PixelType.Byte, self.pointer)
+        GL.Finish()
+        GL.ReadBuffer(ReadBufferMode.Back)
+        GL.ReadPixels(0, 0, self.Size.X, self.Size.Y, PixelFormat.Rgba, PixelType.UnsignedByte, self.pointer)
         let info = SkiaSharp.SKImageInfo(self.Size.X, self.Size.Y, SkiaSharp.SKColorType.Rgba8888)
-        let size = 4 * self.Size.X * self.Size.Y
-        let image = SkiaSharp.SKImage.FromPixels(info, self.pointer, size)
-        let bytes = Array.zeroCreate<byte> size
-        System.Runtime.InteropServices.Marshal.Copy(self.pointer, bytes, 0, size)
-        File.WriteAllBytes("out.dat", bytes)
-(*
+        let image = SkiaSharp.SKImage.FromPixels(info, self.pointer, self.Size.X * 4)
+
         let data = image.Encode()
         use fs = new FileStream("out.png", FileMode.Create, FileAccess.Write)
         data.SaveTo(fs)
-        *)
 
         self.SwapBuffers()
         base.OnRenderFrame(e)
