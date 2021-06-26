@@ -13,7 +13,10 @@ type Texture(handle:int) =
         GL.BindTexture(TextureTarget.Texture2D, handle)
 
         use bmp0 = SkiaSharp.SKBitmap.Decode(path)
-        use bmp1 = bmp0.Copy(SkiaSharp.SKColorType.Rgba8888)
+        use bmp1 = new SkiaSharp.SKBitmap(bmp0.Width, bmp0.Height, SkiaSharp.SKColorType.Rgba8888, SkiaSharp.SKAlphaType.Unpremul)
+        use canvas = new SkiaSharp.SKCanvas(bmp1)
+        canvas.Scale(1.0f, -1.0f, 0.0f, (float32 bmp1.Height) / 2.0f)
+        canvas.DrawBitmap(bmp0, 0.0f, 0.0f)
 
         GL.TexImage2D(TextureTarget.Texture2D, 
             0,
