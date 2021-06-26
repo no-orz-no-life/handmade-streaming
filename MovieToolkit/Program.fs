@@ -7,17 +7,15 @@ open OpenTK.Windowing.GraphicsLibraryFramework
 open OpenTK.Windowing.Desktop
 
 type Texture(handle:int) = 
-    static member LoadFromFile(path:string) = 
+    static member FromSKBitmap(bmp:SkiaSharp.SKBitmap) = 
+        use bmp1 = new SkiaSharp.SKBitmap(bmp.Width, bmp.Height, SkiaSharp.SKColorType.Rgba8888, SkiaSharp.SKAlphaType.Unpremul)
+        use canvas = new SkiaSharp.SKCanvas(bmp1)
+        canvas.Scale(1.0f, -1.0f, 0.0f, (float32 bmp1.Height) / 2.0f)
+        canvas.DrawBitmap(bmp, 0.0f, 0.0f)
+
         let handle = GL.GenTexture()
         GL.ActiveTexture(TextureUnit.Texture0)
         GL.BindTexture(TextureTarget.Texture2D, handle)
-
-        use bmp0 = SkiaSharp.SKBitmap.Decode(path)
-        use bmp1 = new SkiaSharp.SKBitmap(bmp0.Width, bmp0.Height, SkiaSharp.SKColorType.Rgba8888, SkiaSharp.SKAlphaType.Unpremul)
-        use canvas = new SkiaSharp.SKCanvas(bmp1)
-        canvas.Scale(1.0f, -1.0f, 0.0f, (float32 bmp1.Height) / 2.0f)
-        canvas.DrawBitmap(bmp0, 0.0f, 0.0f)
-
         GL.TexImage2D(TextureTarget.Texture2D, 
             0,
             PixelInternalFormat.Rgba,
@@ -35,6 +33,11 @@ type Texture(handle:int) =
         GL.GenerateMipmap(GenerateMipmapTarget.Texture2D)
 
         Texture(handle)
+
+    static member FromFile(path:string) = 
+        use bmp = SkiaSharp.SKBitmap.Decode(path)
+        Texture.FromSKBitmap(bmp)
+
     member self.Use(unit) =
         GL.ActiveTexture(unit)
         GL.BindTexture(TextureTarget.Texture2D, handle)
@@ -96,6 +99,11 @@ type Shader(vertexPath:string, fragmentPath:string)  =
         GL.Uniform1(location, v)
         
 
+let saveSKBitmapToPng path quality (bmp:SkiaSharp.SKBitmap) = 
+    use data = bmp.Encode(SkiaSharp.SKEncodedImageFormat.Png, quality)
+    use fs = new FileStream(path, FileMode.Create, FileAccess.Write)
+    data.SaveTo(fs)
+
 type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWindowSettings) =
     inherit GameWindow(gameWindowSettings, nativeWindowSettings)
     let mutable vertexBufferObject = 0
@@ -150,10 +158,29 @@ type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWind
         GL.EnableVertexAttribArray(texCoordLocation)
         GL.VertexAttribPointer(texCoordLocation, 2, VertexAttribPointerType.Float, false, 5 * sizeof<float32>, 3 * sizeof<float32>)
 
-        self.texture <- Texture.LoadFromFile("container.png")
+        self.texture <- Texture.FromFile("container.png")
         self.texture.Use(TextureUnit.Texture0)
-        self.texture2 <- Texture.LoadFromFile("awesomeface.png")
-        self.texture.Use(TextureUnit.Texture1)
+
+        //self.texture2 <- Texture.FromFile("awesomeface.png")
+        use bmp = new SkiaSharp.SKBitmap(512, 512, SkiaSharp.SKColorType.Rgba8888, SkiaSharp.SKAlphaType.Unpremul)
+        use canvas = new SkiaSharp.SKCanvas(bmp)
+        use paint = new SkiaSharp.SKPaint()
+        paint.TextSize <- 64.0f
+        paint.IsAntialias <- true
+        paint.Color <- SkiaSharp.SKColors.Red
+        paint.IsStroke <- false
+        paint.Style <- SkiaSharp.SKPaintStyle.Fill
+
+        use typeface = SkiaSharp.SKTypeface.FromFile("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc", 0)
+        paint.Typeface <- typeface
+        canvas.Clear(SkiaSharp.SKColors.Blue)
+        canvas.DrawText("あいうえお", 100.0f, 100.0f, paint)
+
+        // saveSKBitmapToPng "first.png" 100 bmp
+
+        self.texture2 <- Texture.FromSKBitmap(bmp)
+
+        self.texture2.Use(TextureUnit.Texture1)
         self.shader.SetInt "texture0" 0
         self.shader.SetInt "texture1" 1
 
@@ -188,9 +215,8 @@ type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWind
             canvas.Scale(1.0f, -1.0f, 0.0f, (float32 bmp.Height) / 2.0f)
             canvas.DrawImage(image, 0.0f, 0.0f)
 
-            let data = bmp.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100)
-            use fs = new FileStream("out.png", FileMode.Create, FileAccess.Write)
-            data.SaveTo(fs)
+            saveSKBitmapToPng "out.png" 100 bmp
+
             saveFile <- false
 
         self.SwapBuffers()
