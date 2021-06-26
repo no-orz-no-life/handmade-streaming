@@ -87,6 +87,10 @@ type Shader(vertexPath:string, fragmentPath:string)  =
     override self.Finalize() = cleanup(false)
     member self.Handle = handle
     member self.GetAttribLocation name = GL.GetAttribLocation(handle, name)
+    member self.SetInt name (v:int) = 
+        self.Use()
+        let location = GL.GetUniformLocation(handle, name)
+        GL.Uniform1(location, v)
         
 
 type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWindowSettings) =
@@ -98,6 +102,7 @@ type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWind
     member self.pointer = System.Runtime.InteropServices.Marshal.AllocHGlobal(4 * self.Size.X * self.Size.Y)
     [<DefaultValue>]val mutable shader:Shader
     [<DefaultValue>]val mutable texture:Texture
+    [<DefaultValue>]val mutable texture2:Texture
 
     member self.vertices = [|
         //Position          Texture coordinates
@@ -143,6 +148,10 @@ type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWind
 
         self.texture <- Texture.LoadFromFile("container.png")
         self.texture.Use(TextureUnit.Texture0)
+        self.texture2 <- Texture.LoadFromFile("awesomeface.png")
+        self.texture.Use(TextureUnit.Texture1)
+        self.shader.SetInt "texture0" 0
+        self.shader.SetInt "texture1" 1
 
         timer.Start()
         base.OnLoad()
@@ -151,6 +160,7 @@ type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWind
         GL.BindVertexArray(vertexArrayObject)
 
         self.texture.Use(TextureUnit.Texture0)
+        self.texture2.Use(TextureUnit.Texture1)
         self.shader.Use()
 
         let timeValue = timer.Elapsed.TotalSeconds
