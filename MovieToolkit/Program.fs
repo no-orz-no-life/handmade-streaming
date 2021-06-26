@@ -5,11 +5,12 @@ open OpenTK.Graphics.OpenGL4
 open OpenTK.Windowing.Common
 open OpenTK.Windowing.GraphicsLibraryFramework
 open OpenTK.Windowing.Desktop
+open SkiaSharp
 
 type Texture(handle:int) = 
-    static member FromSKBitmap(bmp:SkiaSharp.SKBitmap) = 
-        use bmp1 = new SkiaSharp.SKBitmap(bmp.Width, bmp.Height, SkiaSharp.SKColorType.Rgba8888, SkiaSharp.SKAlphaType.Unpremul)
-        use canvas = new SkiaSharp.SKCanvas(bmp1)
+    static member FromSKBitmap(bmp:SKBitmap) = 
+        use bmp1 = new SKBitmap(bmp.Width, bmp.Height, SKColorType.Rgba8888, SKAlphaType.Unpremul)
+        use canvas = new SKCanvas(bmp1)
         canvas.Scale(1.0f, -1.0f, 0.0f, (float32 bmp1.Height) / 2.0f)
         canvas.DrawBitmap(bmp, 0.0f, 0.0f)
 
@@ -35,7 +36,7 @@ type Texture(handle:int) =
         Texture(handle)
 
     static member FromFile(path:string) = 
-        use bmp = SkiaSharp.SKBitmap.Decode(path)
+        use bmp = SKBitmap.Decode(path)
         Texture.FromSKBitmap(bmp)
 
     member self.Use(unit) =
@@ -92,15 +93,15 @@ type Shader(vertexPath:string, fragmentPath:string)  =
             GC.SuppressFinalize(self)
     override self.Finalize() = cleanup(false)
     member self.Handle = handle
-    member self.GetAttribLocation name = GL.GetAttribLocation(handle, name)
-    member self.SetInt name (v:int) = 
+    member self.GetAttribLocation(name) = GL.GetAttribLocation(handle, name)
+    member self.SetInt(name, (v:int)) = 
         self.Use()
         let location = GL.GetUniformLocation(handle, name)
         GL.Uniform1(location, v)
         
 
-let saveSKBitmapToPng path quality (bmp:SkiaSharp.SKBitmap) = 
-    use data = bmp.Encode(SkiaSharp.SKEncodedImageFormat.Png, quality)
+let saveSKBitmapToPng path quality (bmp:SKBitmap) = 
+    use data = bmp.Encode(SKEncodedImageFormat.Png, quality)
     use fs = new FileStream(path, FileMode.Create, FileAccess.Write)
     data.SaveTo(fs)
 
@@ -162,18 +163,18 @@ type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWind
         self.texture.Use(TextureUnit.Texture0)
 
         //self.texture2 <- Texture.FromFile("awesomeface.png")
-        use bmp = new SkiaSharp.SKBitmap(512, 512, SkiaSharp.SKColorType.Rgba8888, SkiaSharp.SKAlphaType.Unpremul)
-        use canvas = new SkiaSharp.SKCanvas(bmp)
-        use paint = new SkiaSharp.SKPaint()
+        use bmp = new SKBitmap(512, 512, SKColorType.Rgba8888, SKAlphaType.Unpremul)
+        use canvas = new SKCanvas(bmp)
+        use paint = new SKPaint()
         paint.TextSize <- 64.0f
         paint.IsAntialias <- true
-        paint.Color <- SkiaSharp.SKColors.Red
+        paint.Color <- SKColors.Red
         paint.IsStroke <- false
-        paint.Style <- SkiaSharp.SKPaintStyle.Fill
+        paint.Style <- SKPaintStyle.Fill
 
-        use typeface = SkiaSharp.SKTypeface.FromFile("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc", 0)
+        use typeface = SKTypeface.FromFile("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc", 0)
         paint.Typeface <- typeface
-        canvas.Clear(SkiaSharp.SKColors.Blue)
+        canvas.Clear(SKColors.Blue)
         canvas.DrawText("あいうえお", 100.0f, 100.0f, paint)
 
         // saveSKBitmapToPng "first.png" 100 bmp
@@ -181,8 +182,8 @@ type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWind
         self.texture2 <- Texture.FromSKBitmap(bmp)
 
         self.texture2.Use(TextureUnit.Texture1)
-        self.shader.SetInt "texture0" 0
-        self.shader.SetInt "texture1" 1
+        self.shader.SetInt("texture0", 0)
+        self.shader.SetInt("texture1", 1)
 
         pointer <- System.Runtime.InteropServices.Marshal.AllocHGlobal(4 * self.Size.X * self.Size.Y)
         timer.Start()
@@ -207,11 +208,11 @@ type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWind
             GL.ReadBuffer(ReadBufferMode.Back)
             GL.ReadPixels(0, 0, self.Size.X, self.Size.Y, PixelFormat.Rgba, PixelType.UnsignedByte, pointer)
 
-            let info = SkiaSharp.SKImageInfo(self.Size.X, self.Size.Y, SkiaSharp.SKColorType.Rgba8888)
-            let image = SkiaSharp.SKImage.FromPixels(info, pointer, self.Size.X * 4)
+            let info = SKImageInfo(self.Size.X, self.Size.Y, SKColorType.Rgba8888)
+            let image = SKImage.FromPixels(info, pointer, self.Size.X * 4)
 
-            use bmp = new SkiaSharp.SKBitmap(self.Size.X, self.Size.Y, SkiaSharp.SKColorType.Rgba8888, SkiaSharp.SKAlphaType.Unpremul)
-            use canvas = new SkiaSharp.SKCanvas(bmp)
+            use bmp = new SKBitmap(self.Size.X, self.Size.Y, SKColorType.Rgba8888, SKAlphaType.Unpremul)
+            use canvas = new SKCanvas(bmp)
             canvas.Scale(1.0f, -1.0f, 0.0f, (float32 bmp.Height) / 2.0f)
             canvas.DrawImage(image, 0.0f, 0.0f)
 
