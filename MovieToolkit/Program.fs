@@ -101,8 +101,9 @@ type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWind
     let mutable vertexBufferObject = 0
     let mutable vertexArrayObject = 0
     let mutable elementBufferObject = 0
+    let mutable saveFile = true
+    let mutable pointer:nativeint = 0n
     let timer = System.Diagnostics.Stopwatch()
-    member self.pointer = System.Runtime.InteropServices.Marshal.AllocHGlobal(4 * self.Size.X * self.Size.Y)
     [<DefaultValue>]val mutable shader:Shader
     [<DefaultValue>]val mutable texture:Texture
     [<DefaultValue>]val mutable texture2:Texture
@@ -156,6 +157,7 @@ type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWind
         self.shader.SetInt "texture0" 0
         self.shader.SetInt "texture1" 1
 
+        pointer <- System.Runtime.InteropServices.Marshal.AllocHGlobal(4 * self.Size.X * self.Size.Y)
         timer.Start()
         base.OnLoad()
     override self.OnRenderFrame(e:FrameEventArgs) =
@@ -173,17 +175,24 @@ type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWind
 *)
         GL.DrawElements(PrimitiveType.Triangles, self.indices.Length, DrawElementsType.UnsignedInt, 0)
 
-(*
-        GL.Finish()
-        GL.ReadBuffer(ReadBufferMode.Back)
-        GL.ReadPixels(0, 0, self.Size.X, self.Size.Y, PixelFormat.Rgba, PixelType.UnsignedByte, self.pointer)
-        let info = SkiaSharp.SKImageInfo(self.Size.X, self.Size.Y, SkiaSharp.SKColorType.Rgba8888)
-        let image = SkiaSharp.SKImage.FromPixels(info, self.pointer, self.Size.X * 4)
+        if saveFile then
+            GL.Finish()
+            GL.ReadBuffer(ReadBufferMode.Back)
+            GL.ReadPixels(0, 0, self.Size.X, self.Size.Y, PixelFormat.Rgba, PixelType.UnsignedByte, pointer)
 
-        let data = image.Encode()
-        use fs = new FileStream("out.png", FileMode.Create, FileAccess.Write)
-        data.SaveTo(fs)
-*)
+            let info = SkiaSharp.SKImageInfo(self.Size.X, self.Size.Y, SkiaSharp.SKColorType.Rgba8888)
+            let image = SkiaSharp.SKImage.FromPixels(info, pointer, self.Size.X * 4)
+
+            use bmp = new SkiaSharp.SKBitmap(self.Size.X, self.Size.Y, SkiaSharp.SKColorType.Rgba8888, SkiaSharp.SKAlphaType.Unpremul)
+            use canvas = new SkiaSharp.SKCanvas(bmp)
+            canvas.Scale(1.0f, -1.0f, 0.0f, (float32 bmp.Height) / 2.0f)
+            canvas.DrawImage(image, 0.0f, 0.0f)
+
+            let data = bmp.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100)
+            use fs = new FileStream("out.png", FileMode.Create, FileAccess.Write)
+            data.SaveTo(fs)
+            saveFile <- false
+
         self.SwapBuffers()
         base.OnRenderFrame(e)
     override self.OnResize(e:ResizeEventArgs) =
