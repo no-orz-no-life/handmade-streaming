@@ -6,6 +6,37 @@ open OpenTK.Windowing.Common
 open OpenTK.Windowing.GraphicsLibraryFramework
 open OpenTK.Windowing.Desktop
 
+type Texture(handle:int) = 
+    static member LoadFromFile(path:string) = 
+        let handle = GL.GenTexture()
+        GL.ActiveTexture(TextureUnit.Texture0)
+        GL.BindTexture(TextureTarget.Texture2D, handle)
+
+        use bmp0 = SkiaSharp.SKBitmap.Decode(path)
+        use bmp1 = bmp0.Copy(SkiaSharp.SKColorType.Rgba8888)
+
+        GL.TexImage2D(TextureTarget.Texture2D, 
+            0,
+            PixelInternalFormat.Rgba,
+            bmp1.Width,
+            bmp1.Height,
+            0,
+            PixelFormat.Rgba,
+            PixelType.UnsignedByte,
+            bmp1.Bytes)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, int TextureMinFilter.Linear)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, int TextureMagFilter.Linear)
+
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, int TextureWrapMode.Repeat)
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, int TextureWrapMode.Repeat)
+        GL.GenerateMipmap(GenerateMipmapTarget.Texture2D)
+
+        Texture(handle)
+    member self.Use(unit) =
+        GL.ActiveTexture(unit)
+        GL.BindTexture(TextureTarget.Texture2D, handle)
+
+
 type Shader(vertexPath:string, fragmentPath:string)  =
     let mutable handle = 0
     let mutable disposed = false
@@ -55,6 +86,7 @@ type Shader(vertexPath:string, fragmentPath:string)  =
             GC.SuppressFinalize(self)
     override self.Finalize() = cleanup(false)
     member self.Handle = handle
+    member self.GetAttribLocation name = GL.GetAttribLocation(handle, name)
         
 
 type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWindowSettings) =
@@ -65,11 +97,14 @@ type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWind
     let timer = System.Diagnostics.Stopwatch()
     member self.pointer = System.Runtime.InteropServices.Marshal.AllocHGlobal(4 * self.Size.X * self.Size.Y)
     [<DefaultValue>]val mutable shader:Shader
+    [<DefaultValue>]val mutable texture:Texture
+
     member self.vertices = [|
-         // positions        // colors
-        0.5f; -0.5f; 0.0f;  1.0f; 0.0f; 0.0f;   // bottom right
-        -0.5f; -0.5f; 0.0f;  0.0f; 1.0f; 0.0f;   // bottom left
-        0.0f;  0.5f; 0.0f;  0.0f; 0.0f; 1.0f;    // top 
+        //Position          Texture coordinates
+         0.5f;  0.5f; 0.0f; 1.0f; 1.0f; // top right
+         0.5f; -0.5f; 0.0f; 1.0f; 0.0f; // bottom right
+        -0.5f; -0.5f; 0.0f; 0.0f; 0.0f; // bottom left
+        -0.5f;  0.5f; 0.0f; 0.0f; 1.0f;  // top left
     |]
     member self.indices = [|
         0u; 1u; 3u;    // first triangle
@@ -77,23 +112,19 @@ type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWind
     |]
     override self.OnUpdateFrame(e:FrameEventArgs) =
         let input = self.KeyboardState
-        if input.IsKeyDown(Keys.Escape) = true then
+        if input.IsKeyDown(Keys.Escape) then
             self.Close()
         else
             base.OnUpdateFrame(e)
     override self.OnLoad() =
         GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f)
 
+        vertexArrayObject <- GL.GenVertexArray()
+        GL.BindVertexArray(vertexArrayObject)
+
         vertexBufferObject <- GL.GenBuffer()
         GL.BindBuffer(BufferTarget.ArrayBuffer, vertexBufferObject)
         GL.BufferData(BufferTarget.ArrayBuffer, self.vertices.Length * sizeof<float32>, self.vertices, BufferUsageHint.StaticDraw)
-
-        vertexArrayObject <- GL.GenVertexArray()
-        GL.BindVertexArray(vertexArrayObject)
-        GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 6 * sizeof<float32>, 0)
-        GL.EnableVertexAttribArray(0)
-        GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, 6 * sizeof<float32>, 3 * sizeof<float32>)
-        GL.EnableVertexAttribArray(1)
 
         elementBufferObject <- GL.GenBuffer()
         GL.BindBuffer(BufferTarget.ElementArrayBuffer, elementBufferObject)
@@ -102,20 +133,34 @@ type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWind
         self.shader <- new Shader("shader.vert", "shader.frag")
         self.shader.Use()
 
+        let vertexLocation = self.shader.GetAttribLocation("aPosition")
+        GL.EnableVertexAttribArray(vertexLocation)
+        GL.VertexAttribPointer(vertexLocation, 3, VertexAttribPointerType.Float, false, 5 * sizeof<float32>, 0)
+
+        let texCoordLocation = self.shader.GetAttribLocation("aTexCoord")
+        GL.EnableVertexAttribArray(texCoordLocation)
+        GL.VertexAttribPointer(texCoordLocation, 2, VertexAttribPointerType.Float, false, 5 * sizeof<float32>, 3 * sizeof<float32>)
+
+        self.texture <- Texture.LoadFromFile("container.png")
+        self.texture.Use(TextureUnit.Texture0)
+
         timer.Start()
         base.OnLoad()
     override self.OnRenderFrame(e:FrameEventArgs) =
         GL.Clear(ClearBufferMask.ColorBufferBit)
+        GL.BindVertexArray(vertexArrayObject)
+
+        self.texture.Use(TextureUnit.Texture0)
         self.shader.Use()
+
         let timeValue = timer.Elapsed.TotalSeconds
 (*        let greenValue:float32 = (Math.Sin(timeValue) |> float32) / (2.0f + 0.5f)
         let vertexColorLocation = GL.GetUniformLocation(self.shader.Handle, "ourColor")
         GL.Uniform4(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
 *)
-        GL.BindVertexArray(vertexArrayObject)
-        GL.DrawArrays(PrimitiveType.Triangles, 0, 3)
-        //GL.DrawElements(PrimitiveType.Triangles, self.indices.Length, DrawElementsType.UnsignedInt, 0)
+        GL.DrawElements(PrimitiveType.Triangles, self.indices.Length, DrawElementsType.UnsignedInt, 0)
 
+(*
         GL.Finish()
         GL.ReadBuffer(ReadBufferMode.Back)
         GL.ReadPixels(0, 0, self.Size.X, self.Size.Y, PixelFormat.Rgba, PixelType.UnsignedByte, self.pointer)
@@ -125,7 +170,7 @@ type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWind
         let data = image.Encode()
         use fs = new FileStream("out.png", FileMode.Create, FileAccess.Write)
         data.SaveTo(fs)
-
+*)
         self.SwapBuffers()
         base.OnRenderFrame(e)
     override self.OnResize(e:ResizeEventArgs) =
