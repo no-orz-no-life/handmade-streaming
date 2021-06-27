@@ -1,0 +1,27 @@
+= TODO
+
+== OpenGL
+
+* Shader
+
+== OpenTK
+
+
+== Skia / SkiaSharp
+
+* Shader
+** gradation
+** path
+
+== Movie
+
+* .NET friendly encode framework
+** ffmpeg
+* pass every frames to encoder
+
+== Filter
+
+* frei0r
+
+== MLT / Shotcut
+
