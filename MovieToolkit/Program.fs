@@ -98,7 +98,12 @@ type Shader(vertexPath:string, fragmentPath:string)  =
         self.Use()
         let location = GL.GetUniformLocation(handle, name)
         GL.Uniform1(location, v)
-        
+    member self.SetMatrix4(name, data) = 
+        self.Use()
+        let mutable v = data
+        let location = GL.GetUniformLocation(handle, name)
+        GL.UniformMatrix4(location, true, &v)
+
 
 let saveSKBitmapToPng path quality (bmp:SKBitmap) = 
     use data = bmp.Encode(SKEncodedImageFormat.Png, quality)
@@ -162,8 +167,8 @@ type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWind
         self.texture <- Texture.FromFile("container.png")
         self.texture.Use(TextureUnit.Texture0)
 
-        //self.texture2 <- Texture.FromFile("awesomeface.png")
-        use bmp = new SKBitmap(512, 512, SKColorType.Rgba8888, SKAlphaType.Unpremul)
+        self.texture2 <- Texture.FromFile("awesomeface.png")
+        (*use bmp = new SKBitmap(512, 512, SKColorType.Rgba8888, SKAlphaType.Unpremul)
         use canvas = new SKCanvas(bmp)
         use paint = new SKPaint()
         paint.TextSize <- 64.0f
@@ -180,7 +185,7 @@ type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWind
         // saveSKBitmapToPng "first.png" 100 bmp
 
         self.texture2 <- Texture.FromSKBitmap(bmp)
-
+        *)
         self.texture2.Use(TextureUnit.Texture1)
         self.shader.SetInt("texture0", 0)
         self.shader.SetInt("texture1", 1)
@@ -192,10 +197,20 @@ type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWind
         GL.Clear(ClearBufferMask.ColorBufferBit)
         GL.BindVertexArray(vertexArrayObject)
 
+        (*let transform = 
+            ((Matrix4.Identity * Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(20f)) *
+              Matrix4.CreateScale(1.1f)) * Matrix4.CreateTranslation(0.1f, 0.1f, 0.0f))
+        *)
+        let mult a b = a * b
+        let transform = 
+            Matrix4.Identity * Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(20f))
+            |> mult (Matrix4.CreateScale(1.1f))
+            |> mult (Matrix4.CreateTranslation(0.1f, 0.1f, 0.0f))
+
         self.texture.Use(TextureUnit.Texture0)
         self.texture2.Use(TextureUnit.Texture1)
         self.shader.Use()
-
+        self.shader.SetMatrix4("transform", transform)
         let timeValue = timer.Elapsed.TotalSeconds
 (*        let greenValue:float32 = (Math.Sin(timeValue) |> float32) / (2.0f + 0.5f)
         let vertexColorLocation = GL.GetUniformLocation(self.shader.Handle, "ourColor")
