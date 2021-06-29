@@ -117,7 +117,10 @@ type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWind
     let mutable elementBufferObject = 0
     let mutable saveFile = true
     let mutable pointer:nativeint = 0n
-    let timer = System.Diagnostics.Stopwatch()
+    let mutable time = 0.0
+    let mutable view = Matrix4.Identity
+    let mutable projection = Matrix4.Identity
+
     [<DefaultValue>]val mutable shader:Shader
     [<DefaultValue>]val mutable texture:Texture
     [<DefaultValue>]val mutable texture2:Texture
@@ -190,10 +193,13 @@ type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWind
         self.shader.SetInt("texture0", 0)
         self.shader.SetInt("texture1", 1)
 
+        view <- Matrix4.CreateTranslation(0.0f, 0.0f, -3.0f)
+        projection <- Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(45f), (float32 self.Size.X) / (float32 self.Size.Y), 0.1f, 100.0f)
+
         pointer <- System.Runtime.InteropServices.Marshal.AllocHGlobal(4 * self.Size.X * self.Size.Y)
-        timer.Start()
         base.OnLoad()
     override self.OnRenderFrame(e:FrameEventArgs) =
+        time <- time + 4.0 * e.Time
         GL.Clear(ClearBufferMask.ColorBufferBit)
         GL.BindVertexArray(vertexArrayObject)
 
@@ -202,16 +208,16 @@ type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWind
               Matrix4.CreateScale(1.1f)) * Matrix4.CreateTranslation(0.1f, 0.1f, 0.0f))
         *)
         let mult a b = a * b
-        let transform = 
-            Matrix4.Identity * Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(20f))
-            |> mult (Matrix4.CreateScale(1.1f))
-            |> mult (Matrix4.CreateTranslation(0.1f, 0.1f, 0.0f))
+        let model = 
+            Matrix4.Identity * Matrix4.CreateRotationX(float32 (MathHelper.DegreesToRadians(time)))
 
         self.texture.Use(TextureUnit.Texture0)
         self.texture2.Use(TextureUnit.Texture1)
         self.shader.Use()
-        self.shader.SetMatrix4("transform", transform)
-        let timeValue = timer.Elapsed.TotalSeconds
+        self.shader.SetMatrix4("model", model)
+        self.shader.SetMatrix4("view", view)
+        self.shader.SetMatrix4("projection", projection)
+
 (*        let greenValue:float32 = (Math.Sin(timeValue) |> float32) / (2.0f + 0.5f)
         let vertexColorLocation = GL.GetUniformLocation(self.shader.Handle, "ourColor")
         GL.Uniform4(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
