@@ -7,6 +7,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Camera.fs" />
+    <Compile Include="Shader.fs" />
+    <Compile Include="Texture.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
