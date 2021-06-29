@@ -7,6 +7,61 @@ open OpenTK.Windowing.GraphicsLibraryFramework
 open OpenTK.Windowing.Desktop
 open SkiaSharp
 
+
+type Camera(pos:Vector3, aspect:float32) = 
+    let mutable front = -Vector3.UnitZ
+    let mutable up = Vector3.UnitY
+    let mutable right = Vector3.UnitX
+    let mutable pitch = 0.0f
+    let mutable yaw = -MathHelper.PiOver2
+    let mutable fov = MathHelper.PiOver2
+
+    let mutable position = Vector3.Zero
+    let mutable aspectRatio= 0.0f
+    do
+        position <- pos
+        aspectRatio <- aspect
+    member self.Position 
+        with get() = position
+        and set(v) = position <- v
+    member self.AspectRatio
+        with get() = aspectRatio
+    member self.Front
+        with get() = front
+        and set(v) = front <- v
+    member self.Up
+        with get() = up
+        and set(v) = up <- v
+    member self.Right
+        with get() = right
+        and set(v) = right <- v
+    member self.Pitch
+        with get() = MathHelper.RadiansToDegrees(pitch)
+        and set(v) = 
+            let angle = MathHelper.Clamp(v, -89f, 89f)
+            pitch <- MathHelper.DegreesToRadians(angle)
+            self.UpdateVectors()
+    member self.Yaw
+        with get() = MathHelper.RadiansToDegrees(yaw)
+        and set(v:float32) =
+            yaw <- MathHelper.DegreesToRadians(v)
+            self.UpdateVectors()
+    member self.Fov
+        with get() = MathHelper.RadiansToDegrees(fov)
+        and set(v) =
+            let angle = MathHelper.Clamp(v, 1f, 45f)
+            fov <- MathHelper.DegreesToRadians(angle)
+    member self.GetViewMatrix() =
+        Matrix4.LookAt(position, position + front, up)
+    member self.GetProjectionMatrix() =
+        Matrix4.CreatePerspectiveFieldOfView(fov, aspectRatio, 0.01f, 100f)
+    member self.UpdateVectors() =
+        front.X <- MathF.Cos(pitch) * MathF.Cos(yaw)
+        front.Y <- MathF.Sin(pitch)
+        front.Z <- MathF.Cos(pitch) * MathF.Sin(yaw)
+        front <- Vector3.Normalize(front)
+        right <- Vector3.Normalize(Vector3.Cross(front, Vector3.UnitY))
+        up <- Vector3.Normalize(Vector3.Cross(right, front))
 type Texture(handle:int) = 
     static member FromSKBitmap(bmp:SKBitmap) = 
         use bmp1 = new SKBitmap(bmp.Width, bmp.Height, SKColorType.Rgba8888, SKAlphaType.Unpremul)
@@ -125,6 +180,12 @@ type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWind
     [<DefaultValue>]val mutable texture:Texture
     [<DefaultValue>]val mutable texture2:Texture
 
+    [<DefaultValue>]val mutable camera:Camera
+
+    let mutable firstMove = true
+    let mutable lastPos = Vector2.Zero
+
+
     member self.vertices = [|
         //Position          Texture coordinates
          0.5f;  0.5f; 0.0f; 1.0f; 1.0f; // top right
@@ -136,12 +197,7 @@ type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWind
         0u; 1u; 3u;    // first triangle
         1u; 2u; 3u;    // second triangle
     |]
-    override self.OnUpdateFrame(e:FrameEventArgs) =
-        let input = self.KeyboardState
-        if input.IsKeyDown(Keys.Escape) then
-            self.Close()
-        else
-            base.OnUpdateFrame(e)
+
     override self.OnLoad() =
         GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f)
 
@@ -191,7 +247,15 @@ type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWind
         *)
         self.texture2.Use(TextureUnit.Texture1)
         self.shader.SetInt("texture0", 0)
+
         self.shader.SetInt("texture1", 1)
+
+        let aspectRatio = (float32 self.Size.X) / (float32 self.Size.Y)
+
+        printfn "X: %A, Y: %A, aspectRatio: %A" self.Size.X self.Size.Y aspectRatio
+
+        self.camera <- Camera(Vector3.UnitZ * 3.0f, aspectRatio)
+        self.CursorGrabbed <- true
 
         view <- Matrix4.CreateTranslation(0.0f, 0.0f, -3.0f)
         projection <- Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(45f), (float32 self.Size.X) / (float32 self.Size.Y), 0.1f, 100.0f)
@@ -215,8 +279,8 @@ type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWind
         self.texture2.Use(TextureUnit.Texture1)
         self.shader.Use()
         self.shader.SetMatrix4("model", model)
-        self.shader.SetMatrix4("view", view)
-        self.shader.SetMatrix4("projection", projection)
+        self.shader.SetMatrix4("view", self.camera.GetViewMatrix())
+        self.shader.SetMatrix4("projection", self.camera.GetProjectionMatrix())
 
 (*        let greenValue:float32 = (Math.Sin(timeValue) |> float32) / (2.0f + 0.5f)
         let vertexColorLocation = GL.GetUniformLocation(self.shader.Handle, "ourColor")
@@ -243,6 +307,40 @@ type Game(gameWindowSettings:GameWindowSettings, nativeWindowSettings:NativeWind
 
         self.SwapBuffers()
         base.OnRenderFrame(e)
+    override self.OnUpdateFrame(e:FrameEventArgs) =
+        if self.IsFocused then
+            let input = self.KeyboardState
+            if input.IsKeyDown(Keys.Escape) then
+                self.Close()
+            else
+                let cameraSpeed = 1.5f
+                let sensitivity = 0.2f
+                if input.IsKeyDown(Keys.W) then
+                    self.camera.Position <- self.camera.Position + (self.camera.Front * cameraSpeed * (float32 e.Time))
+                if input.IsKeyDown(Keys.S) then
+                    self.camera.Position <- self.camera.Position - (self.camera.Front * cameraSpeed * (float32 e.Time))
+                if input.IsKeyDown(Keys.A) then
+                    self.camera.Position <- self.camera.Position + (self.camera.Right * cameraSpeed * (float32 e.Time))
+                if input.IsKeyDown(Keys.D) then
+                    self.camera.Position <- self.camera.Position - (self.camera.Right * cameraSpeed * (float32 e.Time))
+                if input.IsKeyDown(Keys.Space) then
+                    self.camera.Position <- self.camera.Position + (self.camera.Up * cameraSpeed * (float32 e.Time))
+                if input.IsKeyDown(Keys.LeftShift) then
+                    self.camera.Position <- self.camera.Position - (self.camera.Up * cameraSpeed * (float32 e.Time))
+                
+                let mouse = self.MouseState
+                if firstMove then
+                    lastPos <- Vector2(mouse.X, mouse.Y)
+                    firstMove <- false
+                else
+                    let deltaX = mouse.X - lastPos.X
+                    let deltaY = mouse.Y - lastPos.Y
+                    lastPos <- Vector2(mouse.X, mouse.Y)
+                    self.camera.Yaw <- self.camera.Yaw + deltaX * sensitivity
+                    self.camera.Pitch <- self.camera.Pitch - deltaY * sensitivity
+
+                base.OnUpdateFrame(e)
+
     override self.OnResize(e:ResizeEventArgs) =
         GL.Viewport(0, 0, e.Width, e.Height)
         base.OnResize(e)
