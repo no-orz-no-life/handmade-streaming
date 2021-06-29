@@ -11,7 +11,6 @@ open SkiaSharp
 
 module Main = 
 
-
     let saveSKBitmapToPng path quality (bmp:SKBitmap) = 
         use data = bmp.Encode(SKEncodedImageFormat.Png, quality)
         use fs = new FileStream(path, FileMode.Create, FileAccess.Write)
@@ -103,8 +102,6 @@ module Main =
             self.shader.SetInt("texture1", 1)
 
             let aspectRatio = (float32 self.Size.X) / (float32 self.Size.Y)
-
-            printfn "X: %A, Y: %A, aspectRatio: %A" self.Size.X self.Size.Y aspectRatio
 
             self.camera <- Camera(Vector3.UnitZ * 3.0f, aspectRatio)
             self.CursorGrabbed <- true

@@ -1,8 +1,16 @@
 namespace MovieToolkit
+open System
 open OpenTK.Graphics.OpenGL4
 open SkiaSharp
 
 type Texture(handle:int) = 
+    let mutable disposed = false
+    let cleanup(disposing:bool) = 
+        if not disposed then
+            disposed <- true
+            if disposing then
+                () // unmanaged cleanup code 
+            GL.DeleteTexture(handle)
     static member FromSKBitmap(bmp:SKBitmap) = 
         use bmp1 = new SKBitmap(bmp.Width, bmp.Height, SKColorType.Rgba8888, SKAlphaType.Unpremul)
         use canvas = new SKCanvas(bmp1)
@@ -28,7 +36,7 @@ type Texture(handle:int) =
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, int TextureWrapMode.Repeat)
         GL.GenerateMipmap(GenerateMipmapTarget.Texture2D)
 
-        Texture(handle)
+        new Texture(handle)
 
     static member FromFile(path:string) = 
         use bmp = SKBitmap.Decode(path)
@@ -38,3 +46,7 @@ type Texture(handle:int) =
         GL.ActiveTexture(unit)
         GL.BindTexture(TextureTarget.Texture2D, handle)
 
+    interface IDisposable with
+        member self.Dispose() = 
+            cleanup(true)
+            GC.SuppressFinalize(self)
