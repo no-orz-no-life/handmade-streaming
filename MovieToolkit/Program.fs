@@ -123,115 +123,117 @@ module Main =
         override self.OnUnload() = 
             callback Quit |> ignore
             base.OnUnload()
-
-    let root () = 
+    let makeEntity initial = 
         let mutable next = Unchecked.defaultof<Entity>
 
         fun (g:Game) req ->
             match req with
             | Initialize ->
-                let vertices = [|
-                    //Position          Texture coordinates
-                     0.5f;  0.5f; 0.0f; 1.0f; 1.0f; // top right
-                     0.5f; -0.5f; 0.0f; 1.0f; 0.0f; // bottom right
-                    -0.5f; -0.5f; 0.0f; 0.0f; 0.0f; // bottom left
-                    -0.5f;  0.5f; 0.0f; 0.0f; 1.0f;  // top left
-                |]
-                let indices = [|
-                    0u; 1u; 3u;    // first triangle
-                    1u; 2u; 3u;    // second triangle
-                |]
-                let vertexArrayObject = GL.GenVertexArray()
-                GL.BindVertexArray(vertexArrayObject)
-
-                let vertexBufferObject = GL.GenBuffer()
-                GL.BindBuffer(BufferTarget.ArrayBuffer, vertexBufferObject)
-                GL.BufferData(BufferTarget.ArrayBuffer, vertices.Length * sizeof<float32>, vertices, BufferUsageHint.StaticDraw)
-
-                let elementBufferObject = GL.GenBuffer()
-                GL.BindBuffer(BufferTarget.ElementArrayBuffer, elementBufferObject)
-                GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof<uint>, indices, BufferUsageHint.StaticDraw)
-
-                let shader = new Shader("shader.vert", "shader.frag")
-                shader.Use()
-
-                let vertexLocation = shader.GetAttribLocation("aPosition")
-                GL.EnableVertexAttribArray(vertexLocation)
-                GL.VertexAttribPointer(vertexLocation, 3, VertexAttribPointerType.Float, false, 5 * sizeof<float32>, 0)
-
-                let texCoordLocation = shader.GetAttribLocation("aTexCoord")
-                GL.EnableVertexAttribArray(texCoordLocation)
-                GL.VertexAttribPointer(texCoordLocation, 2, VertexAttribPointerType.Float, false, 5 * sizeof<float32>, 3 * sizeof<float32>)
-
-                let texture = Texture.FromFile("container.png")
-                texture.Use(TextureUnit.Texture0)
-
-                let texture2 = Texture.FromFile("awesomeface.png")
-                (*use bmp = new SKBitmap(512, 512, SKColorType.Rgba8888, SKAlphaType.Unpremul)
-                use canvas = new SKCanvas(bmp)
-                use paint = new SKPaint()
-                paint.TextSize <- 64.0f
-                paint.IsAntialias <- true
-                paint.Color <- SKColors.Red
-                paint.IsStroke <- false
-                paint.Style <- SKPaintStyle.Fill
-
-                use typeface = SKTypeface.FromFile("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc", 0)
-                paint.Typeface <- typeface
-                canvas.Clear(SKColors.Blue)
-                canvas.DrawText("あいうえお", 100.0f, 100.0f, paint)
-                // saveSKBitmapToPng "first.png" 100 bmp
-
-                let texture2 = Texture.FromSKBitmap(bmp)
-                *)
-
-                texture2.Use(TextureUnit.Texture1)
-                shader.SetInt("texture0", 0)
-                shader.SetInt("texture1", 1)
-                next <- 
-                    fun (g:Game) req ->
-                        match req with
-                        | Render ->
-                            GL.BindVertexArray(vertexArrayObject)
-
-                            (*let transform = 
-                                ((Matrix4.Identity * Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(20f)) *
-                                  Matrix4.CreateScale(1.1f)) * Matrix4.CreateTranslation(0.1f, 0.1f, 0.0f))
-                            *)
-                            let mult a b = a * b
-                            let model = 
-                                Matrix4.Identity * Matrix4.CreateRotationX(float32 (MathHelper.DegreesToRadians(g.Time)))
-
-                            texture.Use(TextureUnit.Texture0)
-                            texture2.Use(TextureUnit.Texture1)
-                            shader.Use()
-                            shader.SetMatrix4("model", model)
-                            shader.SetMatrix4("view", g.camera.GetViewMatrix())
-                            shader.SetMatrix4("projection", g.camera.GetProjectionMatrix())
-
-                    (*        let greenValue:float32 = (Math.Sin(timeValue) |> float32) / (2.0f + 0.5f)
-                            let vertexColorLocation = GL.GetUniformLocation(self.shader.Handle, "ourColor")
-                            GL.Uniform4(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
-                    *)
-                            GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0)
-                            Ok
-
-                        | Quit ->
-                            GL.BindBuffer(BufferTarget.ArrayBuffer, 0)
-                            GL.BindVertexArray(0)
-                            GL.UseProgram(0)
-
-                            GL.DeleteBuffer(vertexBufferObject)
-                            GL.DeleteBuffer(elementBufferObject)
-                            GL.DeleteVertexArray(vertexArrayObject)
-                            (shader :> IDisposable).Dispose()
-                            (texture :> IDisposable).Dispose()
-                            (texture2 :> IDisposable).Dispose()
-                            Ok
-                        | _ -> Ok
+                next <- initial g req
                 Ok
             | req -> next g req
 
+    let root () = 
+        makeEntity <|
+        fun (g:Game) req ->
+            let vertices = [|
+                //Position          Texture coordinates
+                 0.5f;  0.5f; 0.0f; 1.0f; 1.0f; // top right
+                 0.5f; -0.5f; 0.0f; 1.0f; 0.0f; // bottom right
+                -0.5f; -0.5f; 0.0f; 0.0f; 0.0f; // bottom left
+                -0.5f;  0.5f; 0.0f; 0.0f; 1.0f;  // top left
+            |]
+            let indices = [|
+                0u; 1u; 3u;    // first triangle
+                1u; 2u; 3u;    // second triangle
+            |]
+            let vertexArrayObject = GL.GenVertexArray()
+            GL.BindVertexArray(vertexArrayObject)
+
+            let vertexBufferObject = GL.GenBuffer()
+            GL.BindBuffer(BufferTarget.ArrayBuffer, vertexBufferObject)
+            GL.BufferData(BufferTarget.ArrayBuffer, vertices.Length * sizeof<float32>, vertices, BufferUsageHint.StaticDraw)
+
+            let elementBufferObject = GL.GenBuffer()
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, elementBufferObject)
+            GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof<uint>, indices, BufferUsageHint.StaticDraw)
+
+            let shader = new Shader("shader.vert", "shader.frag")
+            shader.Use()
+
+            let vertexLocation = shader.GetAttribLocation("aPosition")
+            GL.EnableVertexAttribArray(vertexLocation)
+            GL.VertexAttribPointer(vertexLocation, 3, VertexAttribPointerType.Float, false, 5 * sizeof<float32>, 0)
+
+            let texCoordLocation = shader.GetAttribLocation("aTexCoord")
+            GL.EnableVertexAttribArray(texCoordLocation)
+            GL.VertexAttribPointer(texCoordLocation, 2, VertexAttribPointerType.Float, false, 5 * sizeof<float32>, 3 * sizeof<float32>)
+
+            let texture = Texture.FromFile("container.png")
+            texture.Use(TextureUnit.Texture0)
+
+            let texture2 = Texture.FromFile("awesomeface.png")
+            (*use bmp = new SKBitmap(512, 512, SKColorType.Rgba8888, SKAlphaType.Unpremul)
+            use canvas = new SKCanvas(bmp)
+            use paint = new SKPaint()
+            paint.TextSize <- 64.0f
+            paint.IsAntialias <- true
+            paint.Color <- SKColors.Red
+            paint.IsStroke <- false
+            paint.Style <- SKPaintStyle.Fill
+
+            use typeface = SKTypeface.FromFile("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc", 0)
+            paint.Typeface <- typeface
+            canvas.Clear(SKColors.Blue)
+            canvas.DrawText("あいうえお", 100.0f, 100.0f, paint)
+            // saveSKBitmapToPng "first.png" 100 bmp
+
+            let texture2 = Texture.FromSKBitmap(bmp)
+            *)
+
+            texture2.Use(TextureUnit.Texture1)
+            shader.SetInt("texture0", 0)
+            shader.SetInt("texture1", 1)
+            fun (g:Game) req ->
+                match req with
+                | Render ->
+                    GL.BindVertexArray(vertexArrayObject)
+
+                    (*let transform = 
+                        ((Matrix4.Identity * Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(20f)) *
+                          Matrix4.CreateScale(1.1f)) * Matrix4.CreateTranslation(0.1f, 0.1f, 0.0f))
+                    *)
+                    let mult a b = a * b
+                    let model = 
+                        Matrix4.Identity * Matrix4.CreateRotationX(float32 (MathHelper.DegreesToRadians(g.Time)))
+
+                    texture.Use(TextureUnit.Texture0)
+                    texture2.Use(TextureUnit.Texture1)
+                    shader.Use()
+                    shader.SetMatrix4("model", model)
+                    shader.SetMatrix4("view", g.camera.GetViewMatrix())
+                    shader.SetMatrix4("projection", g.camera.GetProjectionMatrix())
+
+            (*        let greenValue:float32 = (Math.Sin(timeValue) |> float32) / (2.0f + 0.5f)
+                    let vertexColorLocation = GL.GetUniformLocation(self.shader.Handle, "ourColor")
+                    GL.Uniform4(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
+            *)
+                    GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0)
+                    Ok
+
+                | Quit ->
+                    GL.BindBuffer(BufferTarget.ArrayBuffer, 0)
+                    GL.BindVertexArray(0)
+                    GL.UseProgram(0)
+
+                    GL.DeleteBuffer(vertexBufferObject)
+                    GL.DeleteBuffer(elementBufferObject)
+                    GL.DeleteVertexArray(vertexArrayObject)
+                    (shader :> IDisposable).Dispose()
+                    (texture :> IDisposable).Dispose()
+                    (texture2 :> IDisposable).Dispose()
+                    Ok
+                | _ -> Ok
     [<EntryPoint>]
     let main argv =
         let nativeWindowSettings = 
