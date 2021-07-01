@@ -8,6 +8,8 @@ open OpenTK.Windowing.Common
 open OpenTK.Windowing.GraphicsLibraryFramework
 open OpenTK.Windowing.Desktop
 open SkiaSharp
+open FFMediaToolkit.Graphics
+open FFMediaToolkit.Encoding
 
 module Main = 
 
@@ -42,6 +44,16 @@ module Main =
 
         let callback e =  root self e
 
+        let saveFrameToPng path bmp = 
+            saveSKBitmapToPng path 100 bmp
+
+        let mutable mediaOutput:MediaOutput = Unchecked.defaultof<MediaOutput>
+        //[<DefaultValue>]val mutable frameImageData:ImageData
+
+        let newFrame (bmp:SKBitmap) =
+            let frameImageData = ImageData.FromArray(bmp.Bytes, ImagePixelFormat.Rgba32, System.Drawing.Size(self.Size.X, self.Size.Y))
+            mediaOutput.Video.AddFrame(frameImageData) |> ignore
+
         member self.Time
             with get() = time
 
@@ -54,6 +66,12 @@ module Main =
 
             self.camera <- Camera(Vector3.UnitZ * 3.0f, aspectRatio)
             self.CursorGrabbed <- true
+
+            let settings = VideoEncoderSettings(self.Size.X, self.Size.Y, 60, VideoCodec.H264)
+            settings.EncoderPreset <- EncoderPreset.Fast
+            settings.CRF <- 17
+            mediaOutput <- MediaBuilder.CreateContainer(Path.GetFullPath("output/out.mkv")).WithVideo(settings).Create()
+            //self.frameImageData <- (ImageData.FromPointer(pointer, ImagePixelFormat.Rgba32, System.Drawing.Size(self.Size.X, self.Size.Y)))
 
             base.OnLoad()
 
@@ -75,9 +93,9 @@ module Main =
                 canvas.Scale(1.0f, -1.0f, 0.0f, (float32 bmp.Height) / 2.0f)
                 canvas.DrawImage(image, 0.0f, 0.0f)
 
-                saveSKBitmapToPng "out.png" 100 bmp
-
-                saveFile <- false
+                newFrame bmp
+                (*saveFrameToPng "output/out.png"
+                saveFile <- false*)
 
             self.SwapBuffers()
             base.OnRenderFrame(e)
@@ -122,7 +140,9 @@ module Main =
             base.OnResize(e)
         override self.OnUnload() = 
             callback Quit |> ignore
+            mediaOutput.Dispose()
             base.OnUnload()
+
     let makeEntity initial = 
         let mutable next = Unchecked.defaultof<Entity>
 
@@ -236,6 +256,7 @@ module Main =
                 | _ -> Ok
     [<EntryPoint>]
     let main argv =
+        System.IO.Directory.CreateDirectory("output") |> ignore
         let nativeWindowSettings = 
             NativeWindowSettings()
             |> (fun it -> 

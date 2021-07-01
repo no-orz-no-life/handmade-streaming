@@ -4,4 +4,4 @@ obj
 *.suo
 .fake
 .ionide
-out.png
+output
