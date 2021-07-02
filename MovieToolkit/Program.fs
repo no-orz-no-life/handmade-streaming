@@ -244,23 +244,59 @@ void main()
             let texture = Texture.FromSKBitmap(bmp)
             texture.Use(TextureUnit.Texture0)
             shader.SetInt("texture0", 0)
+
+            let numSprites = 200
+            let v = 3
+            let x = Array.zeroCreate numSprites
+            let y = Array.zeroCreate numSprites
+            let vx = Array.zeroCreate numSprites
+            let vy = Array.zeroCreate numSprites
+
+            let r = Random()
+            for i in 0..(numSprites - 1) do
+                x.[i] <- r.Next(g.Size.X - icon.Width)
+                y.[i] <- r.Next(g.Size.Y - icon.Height)
+                let mutable tx = 0
+                let mutable ty = 0
+                while tx = 0 && ty = 0 do
+                    tx <- (1 - r.Next(3)) * v
+                    ty <- (1 - r.Next(3)) * v
+                vx.[i] <- tx
+                vy.[i] <- ty
+
+            let view = Matrix4.CreateTranslation(0.0f, 0.0f, -3.0f)
+            let projection = Matrix4.CreateOrthographicOffCenter(0.0f, (float32 g.Size.X), (float32 g.Size.Y), 0.0f, 0.1f, 100.0f)
             fun (g:Game) req ->
                 match req with
+                | Update ->
+                    for i in 0..(numSprites - 1) do
+                        let mutable newX = x.[i] + vx.[i]
+                        let mutable newY = y.[i] + vy.[i]
+                        if (newX >= g.Size.X - w / 2) || (newX <= 0) then
+                            vx.[i] <- vx.[i]  * (-1)
+                            newX <- newX + 2 * vx.[i]
+                        if (newY >= g.Size.Y - h / 2) || (newY <= 0) then
+                            vy.[i] <- vy.[i]  * (-1)
+                            newY <- newY + 2 * vy.[i]
+
+                        x.[i] <- newX
+                        y.[i] <- newY
+                    Ok
                 | Render ->
                     GL.Enable(EnableCap.Blend)
                     GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha)
                     GL.BindVertexArray(vertexArrayObject)
 
-                    let model = Matrix4.CreateTranslation((float32 g.Size.X) / 2.0f, (float32 g.Size.Y) / 2.0f, 1.0f)
-                    let view = Matrix4.CreateTranslation(0.0f, 0.0f, -3.0f)
-                    let projection = Matrix4.CreateOrthographicOffCenter(0.0f, (float32 g.Size.X), (float32 g.Size.Y), 0.0f, 0.1f, 100.0f)
-
                     texture.Use(TextureUnit.Texture0)
                     shader.Use()
-                    shader.SetMatrix4("model", model)
                     shader.SetMatrix4("view", view)
                     shader.SetMatrix4("projection", projection)
-                    GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0)
+
+                    for i in 0..(numSprites - 1) do
+                        let model = Matrix4.CreateTranslation((float32 x.[i]), (float32 y.[i]), 1.0f)
+                        shader.SetMatrix4("model", model)
+                        GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0)
+
                     GL.Disable(EnableCap.Blend)
                     Ok
 
