@@ -12,7 +12,7 @@ type Texture(handle:int) =
                 () // unmanaged cleanup code 
             GL.DeleteTexture(handle)
     static member FromSKBitmap(bmp:SKBitmap) = 
-        use bmp1 = new SKBitmap(bmp.Width, bmp.Height, SKColorType.Rgba8888, SKAlphaType.Unpremul)
+        use bmp1 = new SKBitmap(bmp.Width, bmp.Height, SKColorType.Rgba8888, SKAlphaType.Premul)
         use canvas = new SKCanvas(bmp1)
         canvas.Scale(1.0f, -1.0f, 0.0f, (float32 bmp1.Height) / 2.0f)
         canvas.DrawBitmap(bmp, 0.0f, 0.0f)

@@ -77,7 +77,7 @@ module Main =
 
         override self.OnRenderFrame(e:FrameEventArgs) =
             time <- time + 4.0 * e.Time
-            GL.Clear(ClearBufferMask.ColorBufferBit)
+            GL.Clear(ClearBufferMask.ColorBufferBit ||| ClearBufferMask.DepthBufferBit)
             callback Render |> ignore
 
             if saveFile then
@@ -88,7 +88,7 @@ module Main =
                 let info = SKImageInfo(self.Size.X, self.Size.Y, SKColorType.Rgba8888)
                 let image = SKImage.FromPixels(info, pointer, self.Size.X * 4)
 
-                use bmp = new SKBitmap(self.Size.X, self.Size.Y, SKColorType.Rgba8888, SKAlphaType.Unpremul)
+                use bmp = new SKBitmap(self.Size.X, self.Size.Y, SKColorType.Rgba8888, SKAlphaType.Premul)
                 use canvas = new SKCanvas(bmp)
                 canvas.Scale(1.0f, -1.0f, 0.0f, (float32 bmp.Height) / 2.0f)
                 canvas.DrawImage(image, 0.0f, 0.0f)
@@ -152,6 +152,130 @@ module Main =
                 next <- initial g req
                 Ok
             | req -> next g req
+
+    let testsprite () = 
+        let powerOfTwo n =
+            let mutable v = 1
+            while v < n do
+                v <- v <<< 1
+            v
+
+        makeEntity <|
+        fun (g:Game) req ->
+            use icon = SKBitmap.Decode("icon.bmp")
+
+            let textureW = powerOfTwo icon.Width
+            let textureH = powerOfTwo icon.Height
+            use bmp = new SKBitmap(textureW, textureH, SKColorType.Rgba8888, SKAlphaType.Premul)
+            use canvas = new SKCanvas(bmp)
+            canvas.DrawBitmap(icon, SKPoint(0f, 0f))
+            // apply colorkey
+            for row in 0..(icon.Width) do
+                for col in 0..(icon.Height) do
+                    if bmp.GetPixel(row, col) = SKColors.White then
+                        bmp.SetPixel(row, col, SKColor(255uy, 0uy, 0uy, 0uy))
+            //saveSKBitmapToPng "output/icon.png" 100 bmp
+            let w = icon.Width
+            let h = icon.Height
+            let w2 = (float32 w) / 2f
+            let h2 = (float32 h) / 2f
+
+            let vertices = 
+                let texMaxX = (float32 w) / (float32 textureW)
+                let texMaxY = (float32 h) / (float32 textureH)
+                [|
+                    //Position          Texture coordinates
+                       w2;    h2; 0.0f; texMaxX;    0.0f; // top right
+                       w2;   -h2; 0.0f; texMaxX; texMaxY; // bottom right
+                      -w2;   -h2; 0.0f;    0.0f; texMaxY; // bottom left
+                      -w2;    h2; 0.0f;    0.0f;    0.0f;  // top left
+                |]
+            let indices = [|
+                0u; 1u; 3u;    // first triangle
+                1u; 2u; 3u;    // second triangle
+            |]
+            let vertexArrayObject = GL.GenVertexArray()
+            GL.BindVertexArray(vertexArrayObject)
+
+            let vertexBufferObject = GL.GenBuffer()
+            GL.BindBuffer(BufferTarget.ArrayBuffer, vertexBufferObject)
+            GL.BufferData(BufferTarget.ArrayBuffer, vertices.Length * sizeof<float32>, vertices, BufferUsageHint.StaticDraw)
+
+            let elementBufferObject = GL.GenBuffer()
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, elementBufferObject)
+            GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof<uint>, indices, BufferUsageHint.StaticDraw)
+
+            let vertexShader = @"
+#version 330 core
+layout(location = 0) in vec3 aPosition;
+layout(location = 1) in vec2 aTexCoord;
+out vec2 texCoord;
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+void main(void)
+{
+    texCoord = aTexCoord;
+    gl_Position = vec4(aPosition, 1.0) * model * view * projection;
+}
+            "
+            let fragmentShader = @"
+#version 330
+out vec4 outputColor;
+in vec2 texCoord;
+uniform sampler2D texture0;
+void main()
+{
+    outputColor = texture(texture0, texCoord);
+}
+            "
+            let shader = Shader.FromStringSource(vertexShader, fragmentShader)
+            shader.Use()
+
+            let vertexLocation = shader.GetAttribLocation("aPosition")
+            GL.EnableVertexAttribArray(vertexLocation)
+            GL.VertexAttribPointer(vertexLocation, 3, VertexAttribPointerType.Float, false, 5 * sizeof<float32>, 0)
+
+            let texCoordLocation = shader.GetAttribLocation("aTexCoord")
+            GL.EnableVertexAttribArray(texCoordLocation)
+            GL.VertexAttribPointer(texCoordLocation, 2, VertexAttribPointerType.Float, false, 5 * sizeof<float32>, 3 * sizeof<float32>)
+
+            let texture = Texture.FromSKBitmap(bmp)
+            texture.Use(TextureUnit.Texture0)
+            shader.SetInt("texture0", 0)
+            fun (g:Game) req ->
+                match req with
+                | Render ->
+                    GL.Enable(EnableCap.Blend)
+                    GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha)
+                    GL.BindVertexArray(vertexArrayObject)
+
+                    let model = Matrix4.CreateTranslation((float32 g.Size.X) / 2.0f, (float32 g.Size.Y) / 2.0f, 1.0f)
+                    let view = Matrix4.CreateTranslation(0.0f, 0.0f, -3.0f)
+                    let projection = Matrix4.CreateOrthographicOffCenter(0.0f, (float32 g.Size.X), (float32 g.Size.Y), 0.0f, 0.1f, 100.0f)
+
+                    texture.Use(TextureUnit.Texture0)
+                    shader.Use()
+                    shader.SetMatrix4("model", model)
+                    shader.SetMatrix4("view", view)
+                    shader.SetMatrix4("projection", projection)
+                    GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0)
+                    GL.Disable(EnableCap.Blend)
+                    Ok
+
+                | Quit ->
+                    GL.BindBuffer(BufferTarget.ArrayBuffer, 0)
+                    GL.BindVertexArray(0)
+                    GL.UseProgram(0)
+
+                    GL.DeleteBuffer(vertexBufferObject)
+                    GL.DeleteBuffer(elementBufferObject)
+                    GL.DeleteVertexArray(vertexArrayObject)
+                    (shader :> IDisposable).Dispose()
+                    (texture :> IDisposable).Dispose()
+                    Ok
+                | _ -> Ok
 
     let root () = 
         makeEntity <|
@@ -264,7 +388,7 @@ module Main =
                     it.Title <- "Learn OpenTK"
                     it)
        
-        use game = new Game(GameWindowSettings.Default, nativeWindowSettings, root () )
+        use game = new Game(GameWindowSettings.Default, nativeWindowSettings, testsprite () )
         game.Run()
         0
 
