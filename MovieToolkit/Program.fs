@@ -314,6 +314,7 @@ void main()
                 | _ -> Ok
 
     let root () = 
+        let child = testsprite ()
         makeEntity <|
         fun (g:Game) req ->
             let vertices = [|
@@ -374,7 +375,9 @@ void main()
             texture2.Use(TextureUnit.Texture1)
             shader.SetInt("texture0", 0)
             shader.SetInt("texture1", 1)
+            child g req |> ignore
             fun (g:Game) req ->
+                child g req |> ignore
                 match req with
                 | Render ->
                     GL.BindVertexArray(vertexArrayObject)
@@ -424,7 +427,7 @@ void main()
                     it.Title <- "Learn OpenTK"
                     it)
        
-        use game = new Game(GameWindowSettings.Default, nativeWindowSettings, testsprite () )
+        use game = new Game(GameWindowSettings.Default, nativeWindowSettings, root () )
         game.Run()
         0
 
