@@ -4,8 +4,7 @@ open System
 open System.IO
 open OpenTK.Graphics.OpenGL4
 
-type Shader(vertexPath:string, fragmentPath:string)  =
-    let mutable handle = 0
+type Shader(handle:int) =
     let mutable disposed = false
     let cleanup(disposing:bool) = 
         if not disposed then
@@ -13,30 +12,10 @@ type Shader(vertexPath:string, fragmentPath:string)  =
             if disposing then
                 () // unmanaged cleanup code 
             GL.DeleteProgram(handle)
-    do
-        let compileShaderFromSourceFile shaderType path = 
-            let source = File.ReadAllText(path)
-            let shader = GL.CreateShader(shaderType)
-            GL.ShaderSource(shader, source)
-            GL.CompileShader(shader)
-            match GL.GetShaderInfoLog(shader) with
-            | "" -> Ok(shader)
-            | infoLog -> Error(sprintf "%A" infoLog)
-        
-        let getResultOrFail r =
-            match r with
-            | Ok(v) -> v
-            | Error(message) -> failwith message
 
-        let vertexShader =
-            compileShaderFromSourceFile ShaderType.VertexShader vertexPath
-            |> getResultOrFail
-        
-        let fragmentShader = 
-            compileShaderFromSourceFile ShaderType.FragmentShader fragmentPath
-            |> getResultOrFail
 
-        handle <- GL.CreateProgram()
+    static member private FromShaderHandle(vertexShader, fragmentShader) =
+        let handle = GL.CreateProgram()
         GL.AttachShader(handle, vertexShader)
         GL.AttachShader(handle, fragmentShader)
         GL.LinkProgram(handle)
@@ -45,6 +24,38 @@ type Shader(vertexPath:string, fragmentPath:string)  =
         GL.DetachShader(handle, fragmentShader)
         GL.DeleteShader(vertexShader)
         GL.DeleteShader(fragmentShader)
+        new Shader(handle)
+
+    static member FromStringSource(vertexSource, fragmentSource) =
+        let compileShaderFromString shaderType source =
+            let shader = GL.CreateShader(shaderType)
+            GL.ShaderSource(shader, source)
+            GL.CompileShader(shader)
+            match GL.GetShaderInfoLog(shader) with
+            | "" -> Ok(shader)
+            | infoLog -> Error(sprintf "%A" infoLog)
+
+        let getResultOrFail r =
+            match r with
+            | Ok(v) -> v
+            | Error(message) -> failwith message
+
+        let vertexShader =
+            compileShaderFromString ShaderType.VertexShader vertexSource
+            |> getResultOrFail
+        
+        let fragmentShader = 
+            compileShaderFromString ShaderType.FragmentShader fragmentSource
+            |> getResultOrFail
+
+        Shader.FromShaderHandle(vertexShader, fragmentShader)
+
+    static member FromFile(vertexPath, fragmentPath) = 
+        let vertexSource = File.ReadAllText(vertexPath)
+        let fragmentSource = File.ReadAllText(fragmentPath)
+
+        Shader.FromStringSource(vertexSource, fragmentSource)
+
     member self.Use () = GL.UseProgram(handle)
 
     interface IDisposable with

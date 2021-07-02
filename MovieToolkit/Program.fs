@@ -178,7 +178,7 @@ module Main =
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, elementBufferObject)
             GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof<uint>, indices, BufferUsageHint.StaticDraw)
 
-            let shader = new Shader("shader.vert", "shader.frag")
+            let shader = Shader.FromFile("shader.vert", "shader.frag")
             shader.Use()
 
             let vertexLocation = shader.GetAttribLocation("aPosition")
@@ -256,7 +256,7 @@ module Main =
                 | _ -> Ok
     [<EntryPoint>]
     let main argv =
-        System.IO.Directory.CreateDirectory("output") |> ignore
+        Directory.CreateDirectory("output") |> ignore
         let nativeWindowSettings = 
             NativeWindowSettings()
             |> (fun it -> 
