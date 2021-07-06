@@ -168,30 +168,33 @@ module Main =
         with
         | :? System.ArgumentOutOfRangeException as e ->
             printfn "%A %A => %A" x y e
-    let makeTextureFromImageFile (path:string) colorKeyOption = 
+    let makeTextureFromSKBitmap (src:SKBitmap) colorKeyOption = 
         let powerOfTwo n =
             let mutable v = 1
             while v < n do
                 v <- v <<< 1
             v
-        use icon = SKBitmap.Decode(path)
 
-        let textureW = powerOfTwo icon.Width
-        let textureH = powerOfTwo icon.Height
+        let textureW = powerOfTwo src.Width
+        let textureH = powerOfTwo src.Height
         use bmp = new SKBitmap(textureW, textureH, SKColorType.Rgba8888, SKAlphaType.Premul)
         use canvas = new SKCanvas(bmp)
-        canvas.DrawBitmap(icon, SKPoint(0f, 0f))
+        canvas.DrawBitmap(src, SKPoint(0f, 0f))
 
         match colorKeyOption with
         | None -> ()
-        | FromPixel(x,y) -> setColorKey bmp (icon.GetPixel(x, y))
+        | FromPixel(x,y) -> setColorKey bmp (src.GetPixel(x, y))
         | ByColor(c) -> setColorKey bmp c
 
-        let w = icon.Width
-        let h = icon.Height
+        let w = src.Width
+        let h = src.Height
 
         let texture = Texture.FromSKBitmap(bmp)
         (texture, w, h, textureW, textureH)
+        
+    let makeTextureFromImageFile (path:string) colorKeyOption = 
+        use bmp = SKBitmap.Decode(path)
+        makeTextureFromSKBitmap bmp colorKeyOption
 
     type Sprite (texture:Texture, w:int, h:int, textureW:int, textureH:int) =
         let mutable disposed = false
@@ -301,10 +304,44 @@ void main()
 
         static member FromFile(path, colorKeyOption) =
             new Sprite(makeTextureFromImageFile path colorKeyOption)
+        static member FromSKBitmap(bmp, colorKeyOption) = 
+            new Sprite(makeTextureFromSKBitmap bmp colorKeyOption)
         interface IDisposable with
             member self.Dispose() = 
                 cleanup(true)
                 GC.SuppressFinalize(self)
+
+    let testFont () =
+        makeEntity <|
+        fun (g:Game) req -> 
+            use bmp = new SKBitmap(512, 512, SKColorType.Rgba8888, SKAlphaType.Unpremul)
+            use canvas = new SKCanvas(bmp)
+            use paint = new SKPaint()
+            paint.TextSize <- 64.0f
+            paint.IsAntialias <- true
+            paint.Color <- SKColors.Red
+            paint.IsStroke <- false
+            paint.Style <- SKPaintStyle.Fill
+
+            use typeface = SKTypeface.FromFile("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc", 0)
+            paint.Typeface <- typeface
+            canvas.Clear(SKColors.Blue)
+            canvas.DrawText("あいうえお", 100.0f, 100.0f, paint)
+            saveSKBitmapToPng "output/font.png" 100 bmp
+
+            let sprite = Sprite.FromSKBitmap(bmp, ColorKeyOption.None)
+            let view = Matrix4.CreateTranslation(0.0f, 0.0f, -3.0f)
+            let projection = Matrix4.CreateOrthographicOffCenter(0.0f, (float32 g.Size.X), (float32 g.Size.Y), 0.0f, 0.1f, 100.0f)
+            fun (g:Game) req ->
+                match req with
+                | Render ->
+                    sprite.Use(view, projection)
+                    sprite.Render(400, 300)
+                    Ok
+                | Quit ->
+                    (sprite :> IDisposable).Dispose()
+                    Ok
+                | _ -> Ok
 
     let testsprite () = 
 
@@ -366,7 +403,10 @@ void main()
                 | _ -> Ok
 
     let root () = 
-        let child = testsprite ()
+        let child = [|
+            testsprite ()
+            testFont ()
+            |]
         makeEntity <|
         fun (g:Game) req ->
             let vertices = [|
@@ -406,39 +446,16 @@ void main()
             texture.Use(TextureUnit.Texture0)
 
             let texture2 = Texture.FromFile("awesomeface.png")
-            (*use bmp = new SKBitmap(512, 512, SKColorType.Rgba8888, SKAlphaType.Unpremul)
-            use canvas = new SKCanvas(bmp)
-            use paint = new SKPaint()
-            paint.TextSize <- 64.0f
-            paint.IsAntialias <- true
-            paint.Color <- SKColors.Red
-            paint.IsStroke <- false
-            paint.Style <- SKPaintStyle.Fill
-
-            use typeface = SKTypeface.FromFile("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc", 0)
-            paint.Typeface <- typeface
-            canvas.Clear(SKColors.Blue)
-            canvas.DrawText("あいうえお", 100.0f, 100.0f, paint)
-            // saveSKBitmapToPng "first.png" 100 bmp
-
-            let texture2 = Texture.FromSKBitmap(bmp)
-            *)
-
             texture2.Use(TextureUnit.Texture1)
             shader.SetInt("texture0", 0)
             shader.SetInt("texture1", 1)
-            child g req |> ignore
+            child |> Seq.iter (fun c -> c g req |> ignore)
             fun (g:Game) req ->
-                child g req |> ignore
+                child |> Seq.iter (fun c -> c g req |> ignore)
                 match req with
                 | Render ->
                     GL.BindVertexArray(vertexArrayObject)
 
-                    (*let transform = 
-                        ((Matrix4.Identity * Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(20f)) *
-                          Matrix4.CreateScale(1.1f)) * Matrix4.CreateTranslation(0.1f, 0.1f, 0.0f))
-                    *)
-                    let mult a b = a * b
                     let model = 
                         Matrix4.Identity * Matrix4.CreateRotationX(float32 (MathHelper.DegreesToRadians(g.Time)))
 
