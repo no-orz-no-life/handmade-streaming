@@ -152,31 +152,70 @@ module Main =
                 next <- initial g req
                 Ok
             | req -> next g req
-
-    let testsprite () = 
+    type ColorKeyOption = 
+    | None
+    | FromPixel of int*int
+    | ByColor of SKColor
+    let setColorKey (bmp:SKBitmap) (colorKey:SKColor) =
+        let mutable x = 0
+        let mutable y = 0
+        try
+            // apply colorkey
+            for x in 0..(bmp.Width) do
+                for y in 0..(bmp.Height) do
+                    if bmp.GetPixel(x, y) = colorKey then
+                        bmp.SetPixel(x, y, SKColor(255uy, 0uy, 0uy, 0uy))
+        with
+        | :? System.ArgumentOutOfRangeException as e ->
+            printfn "%A %A => %A" x y e
+    let makeTextureFromImageFile (path:string) colorKeyOption = 
         let powerOfTwo n =
             let mutable v = 1
             while v < n do
                 v <- v <<< 1
             v
+        use icon = SKBitmap.Decode(path)
 
-        makeEntity <|
-        fun (g:Game) req ->
-            use icon = SKBitmap.Decode("icon.bmp")
+        let textureW = powerOfTwo icon.Width
+        let textureH = powerOfTwo icon.Height
+        use bmp = new SKBitmap(textureW, textureH, SKColorType.Rgba8888, SKAlphaType.Premul)
+        use canvas = new SKCanvas(bmp)
+        canvas.DrawBitmap(icon, SKPoint(0f, 0f))
 
-            let textureW = powerOfTwo icon.Width
-            let textureH = powerOfTwo icon.Height
-            use bmp = new SKBitmap(textureW, textureH, SKColorType.Rgba8888, SKAlphaType.Premul)
-            use canvas = new SKCanvas(bmp)
-            canvas.DrawBitmap(icon, SKPoint(0f, 0f))
-            // apply colorkey
-            for row in 0..(icon.Width) do
-                for col in 0..(icon.Height) do
-                    if bmp.GetPixel(row, col) = SKColors.White then
-                        bmp.SetPixel(row, col, SKColor(255uy, 0uy, 0uy, 0uy))
-            //saveSKBitmapToPng "output/icon.png" 100 bmp
-            let w = icon.Width
-            let h = icon.Height
+        match colorKeyOption with
+        | None -> ()
+        | FromPixel(x,y) -> setColorKey bmp (icon.GetPixel(x, y))
+        | ByColor(c) -> setColorKey bmp c
+
+        let w = icon.Width
+        let h = icon.Height
+
+        let texture = Texture.FromSKBitmap(bmp)
+        (texture, w, h, textureW, textureH)
+
+    type Sprite (texture:Texture, w:int, h:int, textureW:int, textureH:int) =
+        let mutable disposed = false
+        let mutable vertexArrayObject = 0
+        let mutable vertexBufferObject = 0
+        let mutable elementBufferObject = 0
+        let mutable indicesLength = 0
+        let mutable shader:Shader = Unchecked.defaultof<Shader>
+        let cleanup(disposing:bool) = 
+            if not disposed then
+                disposed <- true
+                if disposing then
+                    () // unmanaged cleanup code
+                GL.BindBuffer(BufferTarget.ArrayBuffer, 0)
+                GL.BindVertexArray(0)
+                GL.UseProgram(0)
+
+                GL.DeleteBuffer(vertexBufferObject)
+                GL.DeleteBuffer(elementBufferObject)
+                GL.DeleteVertexArray(vertexArrayObject)
+                (shader :> IDisposable).Dispose()
+                (texture :> IDisposable).Dispose()
+
+        do
             let w2 = (float32 w) / 2f
             let h2 = (float32 h) / 2f
 
@@ -194,14 +233,15 @@ module Main =
                 0u; 1u; 3u;    // first triangle
                 1u; 2u; 3u;    // second triangle
             |]
-            let vertexArrayObject = GL.GenVertexArray()
+            indicesLength <- indices.Length
+            vertexArrayObject <- GL.GenVertexArray()
             GL.BindVertexArray(vertexArrayObject)
 
-            let vertexBufferObject = GL.GenBuffer()
+            vertexBufferObject <- GL.GenBuffer()
             GL.BindBuffer(BufferTarget.ArrayBuffer, vertexBufferObject)
             GL.BufferData(BufferTarget.ArrayBuffer, vertices.Length * sizeof<float32>, vertices, BufferUsageHint.StaticDraw)
 
-            let elementBufferObject = GL.GenBuffer()
+            elementBufferObject <- GL.GenBuffer()
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, elementBufferObject)
             GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof<uint>, indices, BufferUsageHint.StaticDraw)
 
@@ -219,7 +259,7 @@ void main(void)
     texCoord = aTexCoord;
     gl_Position = vec4(aPosition, 1.0) * model * view * projection;
 }
-            "
+                "
             let fragmentShader = @"
 #version 330
 out vec4 outputColor;
@@ -230,7 +270,7 @@ void main()
     outputColor = texture(texture0, texCoord);
 }
             "
-            let shader = Shader.FromStringSource(vertexShader, fragmentShader)
+            shader <- Shader.FromStringSource(vertexShader, fragmentShader)
             shader.Use()
 
             let vertexLocation = shader.GetAttribLocation("aPosition")
@@ -241,10 +281,36 @@ void main()
             GL.EnableVertexAttribArray(texCoordLocation)
             GL.VertexAttribPointer(texCoordLocation, 2, VertexAttribPointerType.Float, false, 5 * sizeof<float32>, 3 * sizeof<float32>)
 
-            let texture = Texture.FromSKBitmap(bmp)
             texture.Use(TextureUnit.Texture0)
             shader.SetInt("texture0", 0)
+        member self.Width 
+            with get() = w
+        member self.Height
+            with get() = h
+        member self.Use(view, projection) = 
+            GL.BindVertexArray(vertexArrayObject)
 
+            texture.Use(TextureUnit.Texture0)
+            shader.Use()
+            shader.SetMatrix4("view", view)
+            shader.SetMatrix4("projection", projection)
+        member self.Render(x, y) = 
+            let model = Matrix4.CreateTranslation(float32 x, float32 y, 1.0f)
+            shader.SetMatrix4("model", model)
+            GL.DrawElements(PrimitiveType.Triangles, indicesLength, DrawElementsType.UnsignedInt, 0)
+
+        static member FromFile(path, colorKeyOption) =
+            new Sprite(makeTextureFromImageFile path colorKeyOption)
+        interface IDisposable with
+            member self.Dispose() = 
+                cleanup(true)
+                GC.SuppressFinalize(self)
+
+    let testsprite () = 
+
+        makeEntity <|
+        fun (g:Game) req ->
+            let sprite = Sprite.FromFile("icon.bmp", (ColorKeyOption.FromPixel(0,0)))
             let numSprites = 200
             let v = 3
             let x = Array.zeroCreate numSprites
@@ -254,8 +320,8 @@ void main()
 
             let r = Random()
             for i in 0..(numSprites - 1) do
-                x.[i] <- r.Next(g.Size.X - icon.Width)
-                y.[i] <- r.Next(g.Size.Y - icon.Height)
+                x.[i] <- r.Next(g.Size.X - sprite.Width)
+                y.[i] <- r.Next(g.Size.Y - sprite.Height)
                 let mutable tx = 0
                 let mutable ty = 0
                 while tx = 0 && ty = 0 do
@@ -272,10 +338,10 @@ void main()
                     for i in 0..(numSprites - 1) do
                         let mutable newX = x.[i] + vx.[i]
                         let mutable newY = y.[i] + vy.[i]
-                        if (newX >= g.Size.X - w / 2) || (newX <= 0) then
+                        if (newX >= g.Size.X - sprite.Width / 2) || (newX <= 0) then
                             vx.[i] <- vx.[i]  * (-1)
                             newX <- newX + 2 * vx.[i]
-                        if (newY >= g.Size.Y - h / 2) || (newY <= 0) then
+                        if (newY >= g.Size.Y - sprite.Height / 2) || (newY <= 0) then
                             vy.[i] <- vy.[i]  * (-1)
                             newY <- newY + 2 * vy.[i]
 
@@ -285,31 +351,17 @@ void main()
                 | Render ->
                     GL.Enable(EnableCap.Blend)
                     GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha)
-                    GL.BindVertexArray(vertexArrayObject)
 
-                    texture.Use(TextureUnit.Texture0)
-                    shader.Use()
-                    shader.SetMatrix4("view", view)
-                    shader.SetMatrix4("projection", projection)
+                    sprite.Use(view, projection)
 
                     for i in 0..(numSprites - 1) do
-                        let model = Matrix4.CreateTranslation((float32 x.[i]), (float32 y.[i]), 1.0f)
-                        shader.SetMatrix4("model", model)
-                        GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0)
+                        sprite.Render(x.[i], y.[i])
 
                     GL.Disable(EnableCap.Blend)
                     Ok
 
                 | Quit ->
-                    GL.BindBuffer(BufferTarget.ArrayBuffer, 0)
-                    GL.BindVertexArray(0)
-                    GL.UseProgram(0)
-
-                    GL.DeleteBuffer(vertexBufferObject)
-                    GL.DeleteBuffer(elementBufferObject)
-                    GL.DeleteVertexArray(vertexArrayObject)
-                    (shader :> IDisposable).Dispose()
-                    (texture :> IDisposable).Dispose()
+                    (sprite :> IDisposable).Dispose()
                     Ok
                 | _ -> Ok
 
