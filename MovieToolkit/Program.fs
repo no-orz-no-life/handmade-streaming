@@ -28,26 +28,40 @@ module Main =
     let testFont () =
         makeEntity <|
         fun (g:Game) req -> 
-            use bmp = new SKBitmap(512, 512, SKColorType.Rgba8888, SKAlphaType.Unpremul)
+            use bmp = new SKBitmap(700, 512, SKColorType.Rgba8888, SKAlphaType.Unpremul)
             use canvas = new SKCanvas(bmp)
 
             canvas.Clear(SKColors.Transparent)
 
+            let height = 64.0f
             use paint = new SKPaint()
-            paint.TextSize <- 80.0f
+            paint.TextSize <- height
             paint.IsAntialias <- true
 
             use typeface = SKTypeface.FromFile("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc", 0)
             paint.Typeface <- typeface
 
+            let message = "人生オワタ＼(^o^)／"
+
             paint.Style <- SKPaintStyle.Fill
             paint.Color <- SKColors.White
-            canvas.DrawText("あいうえお", 100.0f, 100.0f, paint)
+            paint.Shader <- SKShader.CreateLinearGradient(
+                SKPoint(0f, 100f),
+                SKPoint(0f, height + 100f),
+                [| 
+                    SKColor(200uy, 200uy, 200uy)
+                    SKColor(150uy, 255uy, 255uy)
+                    SKColor(200uy, 200uy, 200uy)  |],
+                [| 0.45f; 0.7f; 0.85f|],
+                SKShaderTileMode.Repeat
+            )
+            canvas.DrawText(message, 100.0f, 100.0f, paint)
 
-            paint.Color <- SKColors.Red
+            paint.Color <- SKColor(20uy, 20uy, 20uy)
             paint.Style <- SKPaintStyle.Stroke
-            paint.StrokeWidth <- 3.0f
-            canvas.DrawText("あいうえお", 100.0f, 100.0f, paint)
+            paint.StrokeWidth <- 2.0f
+            paint.Shader <- null
+            canvas.DrawText(message, 100.0f, 100.0f, paint)
 
             let sprite = Sprite.FromSKBitmap(bmp, ColorKeyOption.None)
             let view = Matrix4.CreateTranslation(0.0f, 0.0f, -3.0f)
