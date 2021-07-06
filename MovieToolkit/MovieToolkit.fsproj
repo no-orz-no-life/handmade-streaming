@@ -10,6 +10,8 @@
     <Compile Include="Camera.fs" />
     <Compile Include="Shader.fs" />
     <Compile Include="Texture.fs" />
+    <Compile Include="Sprite.fs" />
+    <Compile Include="Game.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
