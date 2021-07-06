@@ -316,18 +316,24 @@ void main()
         fun (g:Game) req -> 
             use bmp = new SKBitmap(512, 512, SKColorType.Rgba8888, SKAlphaType.Unpremul)
             use canvas = new SKCanvas(bmp)
+
+            canvas.Clear(SKColors.Transparent)
+
             use paint = new SKPaint()
-            paint.TextSize <- 64.0f
+            paint.TextSize <- 80.0f
             paint.IsAntialias <- true
-            paint.Color <- SKColors.Red
-            paint.IsStroke <- false
-            paint.Style <- SKPaintStyle.Fill
 
             use typeface = SKTypeface.FromFile("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc", 0)
             paint.Typeface <- typeface
-            canvas.Clear(SKColors.Blue)
+
+            paint.Style <- SKPaintStyle.Fill
+            paint.Color <- SKColors.White
             canvas.DrawText("あいうえお", 100.0f, 100.0f, paint)
-            saveSKBitmapToPng "output/font.png" 100 bmp
+
+            paint.Color <- SKColors.Red
+            paint.Style <- SKPaintStyle.Stroke
+            paint.StrokeWidth <- 3.0f
+            canvas.DrawText("あいうえお", 100.0f, 100.0f, paint)
 
             let sprite = Sprite.FromSKBitmap(bmp, ColorKeyOption.None)
             let view = Matrix4.CreateTranslation(0.0f, 0.0f, -3.0f)
@@ -335,8 +341,13 @@ void main()
             fun (g:Game) req ->
                 match req with
                 | Render ->
+                    GL.Enable(EnableCap.Blend)
+                    GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha)
+
                     sprite.Use(view, projection)
                     sprite.Render(400, 300)
+
+                    GL.Disable(EnableCap.Blend)
                     Ok
                 | Quit ->
                     (sprite :> IDisposable).Dispose()
