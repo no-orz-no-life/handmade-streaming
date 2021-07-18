@@ -58,7 +58,7 @@ module Game
 
         override self.OnLoad() =
             callback Initialize |> ignore
-            GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f)
+            GL.ClearColor(0.2f, 0.3f, 0.3f, 0.0f)
             pointer <- System.Runtime.InteropServices.Marshal.AllocHGlobal(4 * self.Size.X * self.Size.Y)
 
             let aspectRatio = (float32 self.Size.X) / (float32 self.Size.Y)
@@ -66,9 +66,10 @@ module Game
             self.camera <- Camera(Vector3.UnitZ * 3.0f, aspectRatio)
             self.CursorGrabbed <- true
 
-            let settings = VideoEncoderSettings(self.Size.X, self.Size.Y, 60, VideoCodec.H264)
+            let settings = VideoEncoderSettings(self.Size.X, self.Size.Y, 60, FFmpeg.AutoGen.AVCodecID.AV_CODEC_ID_PRORES |> int |> LanguagePrimitives.EnumOfValue)
             settings.EncoderPreset <- EncoderPreset.Fast
             settings.CRF <- 17
+            settings.VideoFormat <- FFmpeg.AutoGen.AVPixelFormat.AV_PIX_FMT_YUVA444P10LE |> int |> LanguagePrimitives.EnumOfValue
             mediaOutput <- MediaBuilder.CreateContainer(Path.GetFullPath("output/out.mkv")).WithVideo(settings).Create()
             //self.frameImageData <- (ImageData.FromPointer(pointer, ImagePixelFormat.Rgba32, System.Drawing.Size(self.Size.X, self.Size.Y)))
 
