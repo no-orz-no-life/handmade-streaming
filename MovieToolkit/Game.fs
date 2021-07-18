@@ -66,10 +66,12 @@ module Game
             self.camera <- Camera(Vector3.UnitZ * 3.0f, aspectRatio)
             self.CursorGrabbed <- true
 
-            let settings = VideoEncoderSettings(self.Size.X, self.Size.Y, 60, FFmpeg.AutoGen.AVCodecID.AV_CODEC_ID_PRORES |> int |> LanguagePrimitives.EnumOfValue)
+            let inline enumOfValue e = e |> int |> LanguagePrimitives.EnumOfValue
+
+            let settings = VideoEncoderSettings(self.Size.X, self.Size.Y, 60, enumOfValue FFmpeg.AutoGen.AVCodecID.AV_CODEC_ID_PRORES)
             settings.EncoderPreset <- EncoderPreset.Fast
             settings.CRF <- 17
-            settings.VideoFormat <- FFmpeg.AutoGen.AVPixelFormat.AV_PIX_FMT_YUVA444P10LE |> int |> LanguagePrimitives.EnumOfValue
+            settings.VideoFormat <- enumOfValue FFmpeg.AutoGen.AVPixelFormat.AV_PIX_FMT_YUVA444P10LE
             mediaOutput <- MediaBuilder.CreateContainer(Path.GetFullPath("output/out.mkv")).WithVideo(settings).Create()
             //self.frameImageData <- (ImageData.FromPointer(pointer, ImagePixelFormat.Rgba32, System.Drawing.Size(self.Size.X, self.Size.Y)))
 
