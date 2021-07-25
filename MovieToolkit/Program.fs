@@ -308,9 +308,6 @@ module Main =
         let mutable lastReceived:timespec = Unchecked.defaultof<timespec>
 
         // TODO:
-        let info = SKImageInfo(1920, 1080, SKColorType.Rgba8888, SKAlphaType.Unpremul)
-        use bmp = new SKBitmap(info)
-        use canvas = new SKCanvas(bmp)
         use typeface = SKTypeface.FromFile("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc", 0)
 
         printfn "READY."
@@ -337,10 +334,13 @@ module Main =
 
                     sem_post(semAck) |> ignore
                     let info = SKImageInfo(int parameter.width, int parameter.height, SKColorType.Rgba8888, SKAlphaType.Unpremul)
+                    use bmp = new SKBitmap(info)
+                    bmp.SetPixels(pRes)
+                    use canvas = new SKCanvas(bmp)
                     use srcImage = SKImage.FromPixels(info, pReq)
                     canvas.DrawImage(srcImage, 0f, 0f)
 
-                    let height = 64.0f
+                    let height = 120.0f
                     use paint = new SKPaint()
                     paint.TextSize <- height
                     paint.IsAntialias <- true
@@ -369,13 +369,28 @@ module Main =
                     paint.Shader <- null
                     canvas.DrawText(message, 100.0f, 100.0f, paint)
 
-                    bmp.InstallPixels(info, pRes) |> printfn "%A"
                     sem_post(semResponse) |> ignore            
             | 0L ->
                 ()
             | n ->
                 ()
 
+    let testPtrToPng argv =
+        let width = 1920
+        let height = 1080
+        let pixel = Marshal.AllocHGlobal(width*height*sizeof<uint32>)
+        let info = SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Unpremul)
+        use bmp = new SKBitmap(info)
+        bmp.SetPixels(pixel)
+
+        use canvas = new SKCanvas(bmp)
+        use paint = new SKPaint()
+        paint.Style <- SKPaintStyle.Fill
+        paint.Color <- SKColors.Yellow
+
+        canvas.DrawRect(100.0f, 100.0f, 200.0f, 200.0f, paint)
+
+        saveSKBitmapToPng "output/pixel.png" 100 bmp
 
     [<EntryPoint>]
     let main argv =
