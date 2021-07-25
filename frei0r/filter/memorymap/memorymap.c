@@ -51,8 +51,8 @@ typedef enum
 
 int f0r_init()
 {
-	printf(FILTER_NAME ": f0r_init\n");
-	mqueue = mq_open(MQUEUE_NAME, O_RDWR|O_CREAT);
+	printf(FILTER_NAME ": f0r_init (mq_open: %s)\n", MQUEUE_NAME);
+	mqueue = mq_open(MQUEUE_NAME, O_RDWR|O_CREAT, 0600, NULL);
 	if(mqueue == -1)
 	{
 		perror(FILTER_NAME ": f0r_init: mq_open");
@@ -107,7 +107,7 @@ f0r_instance_t f0r_construct(unsigned int width, unsigned int height)
 	p += sprintf(p, "%s.", SHM_PREFIX);
 	uuid_t uuid;
 	uuid_generate(uuid);
-	uuid_unparse(uuid, shmName);
+	uuid_unparse(uuid, p);
 
 	printf(FILTER_NAME ": f0r_construct: shmName: %s\n", shmName);
 

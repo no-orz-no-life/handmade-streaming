@@ -12,6 +12,7 @@
     <Compile Include="Texture.fs" />
     <Compile Include="Sprite.fs" />
     <Compile Include="Game.fs" />
+    <Compile Include="Posix.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
